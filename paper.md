@@ -32,7 +32,7 @@ virtughan was designed to overcome these challenges by providing a scalable and 
 
 ### Tile Requests and Partial Reads
 
-A user or front-end requests map tiles via `(z, x, y)` coordinates (along with an optional date/time range and custom band math). Using mercantile’s approach[@mercantile], virtughan determines the tile’s bounding box. It then queries Sentinel-2 STAC metadata to identify scenes covering that region. Via the Cloud-Optimized GeoTIFF specification [@sentinel2cogs], windowed reads fetch only the portion of the image corresponding to the requested tile [@rio-tiler]. 
+A user or front-end requests map tiles via `(z, x, y)` coordinates (along with an optional date/time range and custom band math). Using mercantile’s approach[@mercantile], virtughan determines the tile’s bounding box. It then queries Sentinel-2 STAC metadata to identify scenes covering that region. Via the Cloud-Optimized GeoTIFF specification [@sentinel2cogs], windowed reads fetch only the portion of the image corresponding to the requested tile [@rio-tiler].
 
 ### On-the-Fly Computation
 
@@ -40,28 +40,47 @@ Once partial reads are loaded, virtughan applies user-defined formulas or filter
 
 ### Caching and Scaling
 
-The processed tiles (e.g., PNG or JPEG) can be cached. If an identical tile request recurs, virtughan serves it directly from the cache—improving performance and lowering bandwidth usage. As zoom levels shift, the system adjusts how the partial reads are resampled, ensuring minimal repeated data access. 
+The processed tiles (e.g., PNG or JPEG) can be cached. If an identical tile request recurs, virtughan serves it directly from the cache—improving performance and lowering bandwidth usage. As zoom levels shift, the system adjusts how the partial reads are resampled, ensuring minimal repeated data access.
 
 ### Download Images within Area of Interest
 
 virtughan allows the users to download the images within their area of interest instead of downloading the whole image. The area of interest can be a polygon, rectangle, or a map window. The original level-2A images can be downloaded by filtering bands, date, and cloud cover. If multiple images fall within the selected time range and area, all relevant images captured at different time are retrieved. These downloaded images can further be visualized and analyzed using tools like QGIS and other geospatial applications.
+
+# Performance Comparison
+
+To demonstrate the efficiency of virtughan, we compared its performance against the Sentinel Image Downloader QGIS plugin. The evaluation measured the time required to visualize Sentinel-2 indices (e.g., NDWI) for specific Areas of Interest (AOI).
+
+| Area of Interest  | Virtughan (s) | Sentinel Downloader (s) |
+| :---------------- | :-----------: | :---------------------: |
+| Fewa Lake, Nepal  |      84       |          1283           |
+| Kathmandu, Nepal  |      219      |          1744           |
+| Salzburg, Austria |      50       |           559           |
+
+_Table 1: Time comparison for data visualization. Virtughan computes tiles on-the-fly, whereas the traditional approach requires downloading full scenes._
+
+The traditional workflow (Sentinel Image Downloader) necessitates downloading full scene bands before calculating indices. For AOIs located in scene overlaps (e.g., Fewa Lake), this requires downloading multiple full scenes. In contrast, virtughan processes only the requested tiles, significantly reducing data transfer and processing time. Note that these measurements exclude authentication (CDSE login) and polygon extraction times.
+
+![Performance Comparison](https://github.com/user-attachments/assets/06fe946d-a078-46ad-8e45-0f511313d1e0)
+_Figure 2: Performance comparison chart._
 
 # Figures
 
 ![Flowchart-virtughan](flowchart-virtughan.png)
 
 # Application Areas
+
 virtughan enables real-time geospatial data processing for various Earth observation applications. It helps monitor environmental changes like deforestation, glacial lake expansion, urban heat islands, and wildfires without requiring extensive data storage. In disaster response, it provides rapid analysis of floods, landslides, cyclones, and earthquakes. Urban planners can analyze land use, infrastructure growth, and air quality. AI integration on virtughan obtained datasets can support automated land classification, object detection, and biodiversity tracking. It also aids security efforts, including border monitoring and conflict damage assessment. As an open-source platform, virtughan enhances accessibility for citizen science, environmental advocacy, and academic research.
 
 ## Future Directions
 
 virtughan already enables users to retrieve and process only the necessary image tiles on demand, reducing storage and computational overhead. To further enhance its capabilities, several key improvements are planned, enabling virtughan to integrate more data sources, and support advanced analytics while maintaining its lightweight framework.
-- **Mosaicking**: Automating multi-scene merges for larger coverage areas.  
-- **Additional Sensors**: Adding Landsat, MODIS, and commercial satellite data.  
-- **Plugins and ML Integration**: Allowing advanced user-defined band math or machine-learning inference models for on-the-fly classification.  
+
+- **Mosaicking**: Automating multi-scene merges for larger coverage areas.
+- **Additional Sensors**: Adding Landsat, MODIS, and commercial satellite data.
+- **Plugins and ML Integration**: Allowing advanced user-defined band math or machine-learning inference models for on-the-fly classification.
 - **Distributed Caching**: Supporting scalable deployments for high-traffic or cluster-based environments.
 
-These future developments will increase virtughan’s flexibility, efficiency, and usability, making large-scale Earth observation data processing more accessible and effective across various domains. 
+These future developments will increase virtughan’s flexibility, efficiency, and usability, making large-scale Earth observation data processing more accessible and effective across various domains.
 
 # Acknowledgments
 
