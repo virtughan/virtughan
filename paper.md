@@ -60,10 +60,9 @@ _Table 1: Time comparison for data visualization. Virtughan computes tiles on-th
 
 The traditional workflow (Sentinel Image Downloader) necessitates downloading full scene bands before calculating indices. For AOIs located in scene overlaps (e.g., Fewa Lake), this requires downloading multiple full scenes. In contrast, virtughan processes only the requested tiles, significantly reducing data transfer and processing time. Note that these measurements exclude authentication (CDSE login) and polygon extraction times.
 
-![Performance Comparison](comparison.png)
-_Figure 2: Performance comparison chart._
-
 # Figures
+
+![Performance Comparison](comparison.png)
 
 ![Flowchart-virtughan](flowchart-virtughan.png)
 
