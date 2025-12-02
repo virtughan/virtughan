@@ -31,15 +31,16 @@ theme:
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: install.md
-    - Usage: usage.md
+      - Installation: install.md
+      - Usage: usage.md
   - Examples:
-    - Basic Usage: examples/usage.ipynb
+      - Basic Usage: examples/usage.ipynb
   - Package Reference:
-    - Extract: src/extract.md
-    - Tile: src/tile.md
-    - Engine: src/engine.md
-    - Utils: src/utils.md
+      - Extract: src/extract.md
+      - Tile: src/tile.md
+      - Engine: src/engine.md
+      - Utils: src/utils.md
+      - Performance: comparison.md
   - Learn about COG: cog.md
 
 markdown_extensions:
@@ -56,7 +57,7 @@ markdown_extensions:
   - toc:
       permalink: true
       title: Page contents
-      
+
 plugins:
   - search
   - mkdocs-jupyter
