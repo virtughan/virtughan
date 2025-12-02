@@ -1,39 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/cog/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/cog/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/docs/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/comparison/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/install/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/docs/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/examples/usage/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/install/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/src/engine/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/examples/usage/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/src/extract/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/src/engine/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/src/tile/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/src/extract/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-         <loc>https://kshitijrajsharma.github.io/virtughan/src/utis/</loc>
-         <lastmod>2025-08-22</lastmod>
+         <loc>https://virtughan.live/src/tile/</loc>
+         <lastmod>2025-12-02</lastmod>
+    </url>
+    <url>
+         <loc>https://virtughan.live/src/utis/</loc>
+         <lastmod>2025-12-02</lastmod>
     </url>
 </urlset>
