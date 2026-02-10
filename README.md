@@ -4,7 +4,7 @@
 
 ![Tests Passing](https://img.shields.io/badge/tests-passing-brightgreen)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/virtughan/virtughan/tests.yml?branch=master)
-![Website Status](https://img.shields.io/website-up-down-green-red/https/virtughan.live)
+![Website Status](https://img.shields.io/website-up-down-green-red/https/virtughan.com)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
 ![PyPI Version](https://img.shields.io/pypi/v/virtughan)
 ![Python Version](https://img.shields.io/pypi/pyversions/virtughan)
@@ -14,7 +14,7 @@
 
  Name is combination of two words `virtual` & `cube` , where `cube` translated to Nepali word `घन`,  also known as virtual computation cube.
 
-**Demo** : https://virtughan.live/ 
+**Demo** : https://virtughan.com/ 
 
 
 ### Install 
