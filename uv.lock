@@ -3230,10 +3230,7 @@ name = "virtughan"
 version = "1.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "aiocache" },
-    { name = "fastapi" },
     { name = "httpx" },
-    { name = "jinja2" },
     { name = "matplotlib" },
     { name = "mercantile" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -3244,6 +3241,13 @@ dependencies = [
     { name = "rio-tiler", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "shapely" },
     { name = "tqdm" },
+]
+
+[package.optional-dependencies]
+api = [
+    { name = "aiocache" },
+    { name = "fastapi" },
+    { name = "jinja2" },
     { name = "uvicorn" },
 ]
 
@@ -3263,10 +3267,10 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiocache", specifier = ">=0.12.3" },
-    { name = "fastapi", specifier = ">=0.115.6" },
+    { name = "aiocache", marker = "extra == 'api'", specifier = ">=0.12.3" },
+    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115.6" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "jinja2", specifier = ">=3.1.5" },
+    { name = "jinja2", marker = "extra == 'api'", specifier = ">=3.1.5" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "mercantile", specifier = ">=1.2.1" },
     { name = "numpy", specifier = ">=2.2.1" },
@@ -3275,8 +3279,9 @@ requires-dist = [
     { name = "rio-tiler", specifier = ">=7.2.2" },
     { name = "shapely", specifier = ">=2.0.6" },
     { name = "tqdm", specifier = ">=4.67.1" },
-    { name = "uvicorn", specifier = ">=0.34.0" },
+    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.34.0" },
 ]
+provides-extras = ["api"]
 
 [package.metadata.requires-dev]
 dev = [

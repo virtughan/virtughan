@@ -13,17 +13,21 @@ authors = [
 dependencies = [
     "matplotlib>=3.10.0",
     "rio-tiler>=7.2.2",
-    "fastapi>=0.115.6",
     "pillow>=11.0.0",
     "tqdm>=4.67.1",
     "mercantile>=1.2.1",
     "numpy>=2.2.1",
     "shapely>=2.0.6",
     "httpx>=0.28.1",
+    "requests>=2.32.3",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115.6",
     "aiocache>=0.12.3",
     "jinja2>=3.1.5",
     "uvicorn>=0.34.0",
-    "requests>=2.32.3",
 ]
 
 [project.urls]

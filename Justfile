@@ -2,7 +2,7 @@ default:
     @just --list
 
 install:
-    uv sync
+    uv sync --extra api
 
 lint:
     uv run ruff check src/ tests/ --fix
