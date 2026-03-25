@@ -1,49 +1,86 @@
-[tool.poetry]
+[project]
 name = "virtughan"
 version = "1.0.1"
 description = "Virtual Computation Cube"
-authors = ["kshitijrajsharma <skshitizraj@gmail.com>", "geomatupen <upendra.oli59@gmail.com>"]
 readme = "README.md"
-packages = [
-    { include = "virtughan", from = "src" }
-]
 license = "GPL-3.0-or-later"
+requires-python = ">=3.10"
+authors = [
+    { name = "kshitijrajsharma", email = "skshitizraj@gmail.com" },
+    { name = "geomatupen", email = "upendra.oli59@gmail.com" },
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-matplotlib = "^3.10.0"
-rio-tiler = "^7.2.2"
-fastapi = "^0.115.6"
-pillow = "^11.0.0"
-tqdm = "^4.67.1"
-mercantile = "^1.2.1"
-numpy = "^2.2.1"
-shapely = "^2.0.6"
-httpx = "^0.28.1"
-aiocache = "^0.12.3"
-jinja2 = "^3.1.5"
-uvicorn = "^0.34.0"
-requests = "^2.32.3"
-mkdocstrings = {extras = ["python"], version = "^0.28.1"}
+dependencies = [
+    "matplotlib>=3.10.0",
+    "rio-tiler>=7.2.2",
+    "fastapi>=0.115.6",
+    "pillow>=11.0.0",
+    "tqdm>=4.67.1",
+    "mercantile>=1.2.1",
+    "numpy>=2.2.1",
+    "shapely>=2.0.6",
+    "httpx>=0.28.1",
+    "aiocache>=0.12.3",
+    "jinja2>=3.1.5",
+    "uvicorn>=0.34.0",
+    "requests>=2.32.3",
+]
 
+[project.urls]
+Homepage = "https://github.com/virtughan/virtughan"
+Documentation = "https://virtughan.com"
 
-[tool.poetry.group.dev.dependencies]
-commitizen = "^4.1.0"
-pytest = "^8.3.4"
-pytest-asyncio = "^0.25.1"
-mkdocs-material = "^9.6.5"
-mkdocstrings = "^0.28.1"
-mkdocs-autorefs = "^1.3.1"
-mkdocs-jupyter = "^0.25.1"
-
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "$version"
-version_scheme = "semver2"
-version_provider = "poetry"
-update_changelog_on_bump = true
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.1",
+    "ruff>=0.15.0",
+    "ty>=0.0.25",
+]
+docs = [
+    "mkdocs-material>=9.6.5",
+    "mkdocstrings[python]>=0.28.1",
+    "mkdocs-autorefs>=1.3.1",
+    "mkdocs-jupyter>=0.25.1",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 99
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+    "RUF",
+]
+ignore = ["E501", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[[tool.ty.overrides]]
+include = ["src/virtughan/tile.py"]
+[tool.ty.overrides.rules]
+invalid-assignment = "ignore"
+unresolved-attribute = "ignore"
+missing-argument = "ignore"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

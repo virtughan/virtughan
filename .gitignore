@@ -1,4 +1,5 @@
 env
+.venv
 __pycache__
 *.tif
 images
@@ -10,3 +11,6 @@ venv
 *.zip
 *.log
 # *.ipynb
+implementation.md
+poetry.lock
+virtughan_output

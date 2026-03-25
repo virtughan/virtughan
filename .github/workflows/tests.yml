@@ -1,4 +1,4 @@
-name: Run tests
+name: CI
 
 on:
   push:
@@ -10,25 +10,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-publish:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+      - uses: astral-sh/ruff-action@v3
         with:
-          python-version: "3.11"
+          args: "format --check"
 
-      - name: Install poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - uses: astral-sh/ty-action@v1
 
-      - name: Install dependencies
-        run: poetry install
-
-      - name: Run tests
-        run: poetry run pytest
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run pytest tests/

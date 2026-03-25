@@ -8,7 +8,7 @@ from aiocache import cached
 from fastapi import HTTPException
 from matplotlib import pyplot as plt
 from PIL import Image
-from rio_tiler.io import COGReader
+from rio_tiler.io import Reader
 from shapely.geometry import box, mapping
 
 from .utils import (
@@ -71,7 +71,7 @@ class TileProcessor:
         """
 
         def read_tile():
-            with COGReader(url) as cog:
+            with Reader(input=url) as cog:
                 tile, _ = cog.tile(x, y, z)
                 return tile
 
@@ -92,7 +92,7 @@ class TileProcessor:
         colormap_str: str = "RdYlGn",
         latest: bool = True,
         operation: str = "median",
-    ) -> bytes:
+    ) -> tuple[bytes, dict]:
         """
         Generate and cache a tile.
 
@@ -116,14 +116,10 @@ class TileProcessor:
         tile = mercantile.Tile(x, y, z)
         bbox = mercantile.bounds(tile)
         bbox_geojson = mapping(box(bbox.west, bbox.south, bbox.east, bbox.north))
-        results = await search_stac_api_async(
-            bbox_geojson, start_date, end_date, cloud_cover
-        )
+        results = await search_stac_api_async(bbox_geojson, start_date, end_date, cloud_cover)
 
         if not results:
-            raise HTTPException(
-                status_code=404, detail="No images found for the given parameters"
-            )
+            raise HTTPException(status_code=404, detail="No images found for the given parameters")
 
         results = filter_intersected_features(
             results, [bbox.west, bbox.south, bbox.east, bbox.north]
@@ -144,7 +140,7 @@ class TileProcessor:
                     band1 = tiles[0]
                     band2 = tiles[1] if band2_url else None
                 except Exception as e:
-                    raise HTTPException(status_code=500, detail=str(e))
+                    raise HTTPException(status_code=500, detail=str(e)) from e
 
                 if band2 is not None:
                     band1 = band1[0].astype(float)
@@ -161,12 +157,10 @@ class TileProcessor:
                         band1 = band1.transpose(1, 2, 0)
                         image = Image.fromarray(band1)
             else:
-
                 raise HTTPException(
                     status_code=404, detail="No images found for the given parameters"
                 )
         else:
-
             results = remove_overlapping_sentinel2_tiles(results)
             results = smart_filter_images(results, start_date, end_date)
             band1_tiles = []
@@ -187,7 +181,7 @@ class TileProcessor:
                     if band2:
                         band2_tiles.append(tiles[i + 1])
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                raise HTTPException(status_code=500, detail=str(e)) from e
 
             band1 = aggregate_time_series(
                 [tile[0].astype(float) for tile in band1_tiles], operation

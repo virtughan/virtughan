@@ -8,6 +8,7 @@ import numpy as np
 import rasterio as rio
 from PIL import Image
 from pyproj import Transformer
+from rasterio.enums import Resampling
 from rasterio.warp import reproject
 from rasterio.windows import from_bounds
 
@@ -102,9 +103,7 @@ class VirtughanProcessor:
         try:
             with rio.open(band1_url) as band1_cog:
                 min_x, min_y, max_x, max_y = self._transform_bbox(band1_cog.crs)
-                band1_window = self._calculate_window(
-                    band1_cog, min_x, min_y, max_x, max_y
-                )
+                band1_window = self._calculate_window(band1_cog, min_x, min_y, max_x, max_y)
 
                 if self._is_window_out_of_bounds(band1_window):
                     return None, None, None, None
@@ -144,7 +143,7 @@ class VirtughanProcessor:
                                     src_crs=band2_cog.crs,
                                     dst_transform=band1_transform,
                                     dst_crs=band1_cog.crs,
-                                    resampling=rio.warp.Resampling.bilinear,
+                                    resampling=Resampling.bilinear,
                                     dst_shape=(band1_height, band1_width),
                                 )
                                 band2_data = resampled_band2
@@ -159,7 +158,7 @@ class VirtughanProcessor:
                                     src_crs=band1_cog.crs,
                                     dst_transform=band2_transform,
                                     dst_crs=band2_cog.crs,
-                                    resampling=rio.warp.Resampling.bilinear,
+                                    resampling=Resampling.bilinear,
                                     dst_shape=(band2_height, band2_width),
                                 )
                                 band1_data = resampled_band1
@@ -167,13 +166,11 @@ class VirtughanProcessor:
                         else:
                             transform = band1_transform
 
-                        band1 = band1_data
-                        band2 = band2_data
+                        band1 = band1_data  # noqa: F841
+                        band2 = band2_data  # noqa: F841
                         result = eval(self.formula)
                 else:
-                    result = (
-                        eval(self.formula) if band1_data.shape[0] == 1 else band1_data
-                    )
+                    result = eval(self.formula) if band1_data.shape[0] == 1 else band1_data
                     transform = band1_transform
 
             return result, band1_cog.crs, transform, band1_url
@@ -199,7 +196,7 @@ class VirtughanProcessor:
             zone = feature["id"].split("_")[1][:2]
             zone_counts[zone] = zone_counts.get(zone, 0) + 1
         # lets get the maximum occorance zone so that when we remove duplicates later on we atleast will try to keep the same zone tiles
-        max_zone = max(zone_counts, key=zone_counts.get)
+        max_zone = max(zone_counts, key=lambda k: zone_counts[k])
 
         filtered_features = {}
         for feature in features:
@@ -254,12 +251,7 @@ class VirtughanProcessor:
         Returns:
         bool: True if the window is out of bounds, False otherwise.
         """
-        return (
-            window.col_off < 0
-            or window.row_off < 0
-            or window.width <= 0
-            or window.height <= 0
-        )
+        return window.col_off < 0 or window.row_off < 0 or window.width <= 0 or window.height <= 0
 
     def _get_band_urls(self, features):
         """
@@ -292,17 +284,13 @@ class VirtughanProcessor:
         print(f"Total scenes found: {len(features)}")
         filtered_features = filter_intersected_features(features, self.bbox)
         print(f"Scenes covering input area: {len(filtered_features)}")
-        overlapping_features_removed = remove_overlapping_sentinel2_tiles(
-            filtered_features
-        )
+        overlapping_features_removed = remove_overlapping_sentinel2_tiles(filtered_features)
         print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
                 overlapping_features_removed, self.start_date, self.end_date
             )
-            print(
-                f"Scenes after applying smart filter: {len(overlapping_features_removed)}"
-            )
+            print(f"Scenes after applying smart filter: {len(overlapping_features_removed)}")
 
         band1_urls, band2_urls = self._get_band_urls(overlapping_features_removed)
 
@@ -310,9 +298,7 @@ class VirtughanProcessor:
             print("Using Parallel Processing...")
             with ThreadPoolExecutor(max_workers=self.workers) as executor:
                 futures = [
-                    executor.submit(
-                        self.fetch_process_custom_band, band1_url, band2_url
-                    )
+                    executor.submit(self.fetch_process_custom_band, band1_url, band2_url)
                     for band1_url, band2_url in zip(band1_urls, band2_urls)
                 ]
                 for future in tqdm(
@@ -327,9 +313,7 @@ class VirtughanProcessor:
                         self.crs = crs
                         self.transform = transform
                         parts = name_url.split("/")
-                        image_name = parts[
-                            -2
-                        ]  # fix this for other images than sentinel
+                        image_name = parts[-2]  # fix this for other images than sentinel
                         self.dates.append(image_name.split("_")[2])
                         if self.timeseries:
                             self._save_intermediate_image(result, image_name)
@@ -340,8 +324,8 @@ class VirtughanProcessor:
                 desc="Computing Band Calculation",
                 file=self.log_file,
             ):
-                result, self.crs, self.transform, name_url = (
-                    self.fetch_process_custom_band(band1_url, band2_url)
+                result, self.crs, self.transform, name_url = self.fetch_process_custom_band(
+                    band1_url, band2_url
                 )
                 if result is not None:
                     self.result_list.append(result)
@@ -363,9 +347,7 @@ class VirtughanProcessor:
         output_file = os.path.join(self.output_dir, f"{image_name}_result.tif")
         self._save_geotiff(result, output_file)
         self.intermediate_images.append(output_file)
-        self.intermediate_images_with_text.append(
-            self.add_text_to_image(output_file, image_name)
-        )
+        self.intermediate_images_with_text.append(self.add_text_to_image(output_file, image_name))
 
     def _save_geotiff(self, data, output_file):
         """
@@ -400,9 +382,7 @@ class VirtughanProcessor:
         Returns:
         numpy.ndarray: Aggregated result.
         """
-        sorted_dates_and_results = sorted(
-            zip(self.dates, self.result_list), key=lambda x: x[0]
-        )
+        sorted_dates_and_results = sorted(zip(self.dates, self.result_list), key=lambda x: x[0])
         sorted_dates, sorted_results = zip(*sorted_dates_and_results)
 
         max_shape = tuple(max(s) for s in zip(*[arr.shape for arr in sorted_results]))
@@ -475,18 +455,14 @@ class VirtughanProcessor:
         numpy.ndarray: Image array.
         """
         if data.shape[0] == 1:
-            result_normalized = (data[0] - data[0].min()) / (
-                data[0].max() - data[0].min()
-            )
+            result_normalized = (data[0] - data[0].min()) / (data[0].max() - data[0].min())
             colormap = plt.get_cmap(self.cmap)
             result_colored = colormap(result_normalized)
             return (result_colored[:, :, :3] * 255).astype(np.uint8)
         else:
             image_array = np.transpose(data, (1, 2, 0))
             image_array = (
-                (image_array - image_array.min())
-                / (image_array.max() - image_array.min())
-                * 255
+                (image_array - image_array.min()) / (image_array.max() - image_array.min()) * 255
             )
             return image_array.astype(np.uint8)
 
@@ -531,8 +507,7 @@ class VirtughanProcessor:
         numpy.ndarray: Padded array.
         """
         pad_width = [
-            (0, max(0, target - current))
-            for current, target in zip(array.shape, target_shape)
+            (0, max(0, target - current)) for current, target in zip(array.shape, target_shape)
         ]
         return np.pad(array, pad_width, mode="constant", constant_values=fill_value)
 
@@ -549,14 +524,10 @@ class VirtughanProcessor:
         """
         with rio.open(image_path) as src:
             image_array = (
-                src.read(1)
-                if src.count == 1
-                else np.dstack([src.read(i) for i in range(1, 4)])
+                src.read(1) if src.count == 1 else np.dstack([src.read(i) for i in range(1, 4)])
             )
             image_array = (
-                (image_array - image_array.min())
-                / (image_array.max() - image_array.min())
-                * 255
+                (image_array - image_array.min()) / (image_array.max() - image_array.min()) * 255
             )
             image = Image.fromarray(image_array.astype(np.uint8))
 
@@ -585,7 +556,7 @@ class VirtughanProcessor:
         max_width = max(image.width for image in images)
         max_height = max(image.height for image in images)
         resized_images = [
-            image.resize((max_width, max_height), Image.LANCZOS) for image in images
+            image.resize((max_width, max_height), Image.Resampling.LANCZOS) for image in images
         ]
 
         frame_duration = duration_per_image * 1000
@@ -614,9 +585,7 @@ class VirtughanProcessor:
         if self.result_list and self.operation:
             print("Aggregating results...")
             result_aggregate = self._aggregate_results()
-            output_file = os.path.join(
-                self.output_dir, "custom_band_output_aggregate.tif"
-            )
+            output_file = os.path.join(self.output_dir, "custom_band_output_aggregate.tif")
             print("Saving aggregated result with colormap...")
             self.save_aggregated_result_with_colormap(result_aggregate, output_file)
 

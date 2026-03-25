@@ -9,13 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install poetry
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY . .
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-RUN poetry config virtualenvs.create false && poetry install --no-interaction 
+COPY . .
 
 
 # Final stage

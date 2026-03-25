@@ -136,12 +136,7 @@ class ExtractProcessor:
         Returns:
         bool: True if the window is out of bounds, False otherwise.
         """
-        return (
-            window.col_off < 0
-            or window.row_off < 0
-            or window.width <= 0
-            or window.height <= 0
-        )
+        return window.col_off < 0 or window.row_off < 0 or window.width <= 0 or window.height <= 0
 
     def _get_band_urls(self, features):
         """
@@ -154,8 +149,7 @@ class ExtractProcessor:
         list: List of band URLs.
         """
         band_urls = [
-            [feature["assets"][band]["href"] for band in self.bands_list]
-            for feature in features
+            [feature["assets"][band]["href"] for band in self.bands_list] for feature in features
         ]
         return band_urls
 
@@ -184,9 +178,7 @@ class ExtractProcessor:
             for band_url in band_urls:
                 with rasterio.open(band_url) as band_cog:
                     min_x, min_y, max_x, max_y = self._transform_bbox(band_cog.crs)
-                    band_window = self._calculate_window(
-                        band_cog, min_x, min_y, max_x, max_y
-                    )
+                    band_window = self._calculate_window(band_cog, min_x, min_y, max_x, max_y)
 
                     if self._is_window_out_of_bounds(band_window):
                         return None
@@ -221,9 +213,7 @@ class ExtractProcessor:
 
             print("Stacking Bands...")
             stacked_bands = np.stack(bands)
-            output_file = os.path.join(
-                self.output_dir, f"{feature_id}_bands_export.tif"
-            )
+            output_file = os.path.join(self.output_dir, f"{feature_id}_bands_export.tif")
             self._save_geotiff(stacked_bands, output_file, bands_meta)
             return output_file
         except Exception as ex:
@@ -277,17 +267,13 @@ class ExtractProcessor:
         print(f"Total scenes found: {len(features)}")
         filtered_features = filter_intersected_features(features, self.bbox)
         print(f"Scenes covering input area: {len(filtered_features)}")
-        overlapping_features_removed = remove_overlapping_sentinel2_tiles(
-            filtered_features
-        )
+        overlapping_features_removed = remove_overlapping_sentinel2_tiles(filtered_features)
         print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
                 overlapping_features_removed, self.start_date, self.end_date
             )
-            print(
-                f"Scenes after applying smart filter: {len(overlapping_features_removed)}"
-            )
+            print(f"Scenes after applying smart filter: {len(overlapping_features_removed)}")
 
         band_urls_list = self._get_band_urls(overlapping_features_removed)
         result_lists = []
@@ -295,12 +281,8 @@ class ExtractProcessor:
             print("Using Parallel Processing...")
             with ThreadPoolExecutor(max_workers=self.workers) as executor:
                 futures = [
-                    executor.submit(
-                        self._fetch_and_save_bands, band_urls, feature["id"]
-                    )
-                    for band_urls, feature in zip(
-                        band_urls_list, overlapping_features_removed
-                    )
+                    executor.submit(self._fetch_and_save_bands, band_urls, feature["id"])
+                    for band_urls, feature in zip(band_urls_list, overlapping_features_removed)
                 ]
                 for future in tqdm(
                     as_completed(futures),

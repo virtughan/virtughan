@@ -45,9 +45,7 @@ def search_stac_api(bbox, start_date, end_date, cloud_cover):
 
         all_features.extend(response_json["features"])
 
-        next_link = next(
-            (link for link in response_json["links"] if link["rel"] == "next"), None
-        )
+        next_link = next((link for link in response_json["links"] if link["rel"] == "next"), None)
         if not next_link:
             break
     return all_features
@@ -128,10 +126,7 @@ def filter_latest_image_per_grid(features):
     for feature in features:
         grid = feature["id"].split("_")[1]
         date = feature["properties"]["datetime"]
-        if (
-            grid not in grid_latest
-            or date > grid_latest[grid]["properties"]["datetime"]
-        ):
+        if grid not in grid_latest or date > grid_latest[grid]["properties"]["datetime"]:
             grid_latest[grid] = feature
     return list(grid_latest.values())
 
@@ -148,11 +143,7 @@ def filter_intersected_features(features, bbox):
     list: List of filtered features.
     """
     bbox_polygon = box(bbox[0], bbox[1], bbox[2], bbox[3])
-    return [
-        feature
-        for feature in features
-        if shape(feature["geometry"]).contains(bbox_polygon)
-    ]
+    return [feature for feature in features if shape(feature["geometry"]).contains(bbox_polygon)]
 
 
 def remove_overlapping_sentinel2_tiles(features):
@@ -176,7 +167,7 @@ def remove_overlapping_sentinel2_tiles(features):
     if not zone_counts:
         return []
 
-    max_zone = max(zone_counts, key=zone_counts.get)
+    max_zone = max(zone_counts, key=lambda k: zone_counts[k])
 
     filtered_features = {}
     for feature in features:
@@ -263,7 +254,7 @@ def smart_filter_images(features, start_date: str, end_date: str):
                 filtered_features.append(best_feature)
             best_feature = feature
             last_selected_date = date
-        else:
+        elif best_feature is not None:
             if (
                 feature["properties"]["eo:cloud_cover"]
                 < best_feature["properties"]["eo:cloud_cover"]
