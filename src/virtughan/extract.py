@@ -129,7 +129,7 @@ class ExtractProcessor:
                     bands.append(band_data)
                     bands_meta.append(band_url.split("/")[-1].split(".")[0])
 
-            print("Stacking Bands...")
+            self.console.print(f"[bold]Stacking bands for[/bold] {feature_id}")
             stacked_bands = np.stack(bands)
             output_file = os.path.join(self.output_dir, f"{feature_id}_bands_export.tif")
             save_geotiff(
@@ -140,7 +140,7 @@ class ExtractProcessor:
             raise
 
     def extract(self) -> None:
-        print("Extracting bands...")
+        self.console.print("[bold blue]Extracting bands...[/bold blue]")
         os.makedirs(self.output_dir, exist_ok=True)
 
         features = search_stac(
@@ -150,24 +150,24 @@ class ExtractProcessor:
             self.end_date,
             self.cloud_cover,
         )
-        print(f"Total scenes found: {len(features)}")
+        self.console.print(f"Total scenes found: {len(features)}")
         filtered_features = filter_intersected_features(features, self.bbox)
-        print(f"Scenes covering input area: {len(filtered_features)}")
+        self.console.print(f"Scenes covering input area: {len(filtered_features)}")
         overlapping_features_removed = remove_overlapping_tiles(
             filtered_features, self.collection_config.tile_id_parser
         )
-        print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
+        self.console.print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
                 overlapping_features_removed, self.start_date, self.end_date
             )
-            print(f"Scenes after applying smart filter: {len(overlapping_features_removed)}")
+            self.console.print(f"Scenes after smart filter: {len(overlapping_features_removed)}")
 
         band_urls_list = self._get_band_urls(overlapping_features_removed)
         result_lists: list[str | None] = []
 
         if self.workers > 1:
-            print("Using Parallel Processing...")
+            self.console.print("Using parallel processing...")
             with ThreadPoolExecutor(max_workers=self.workers) as executor:
                 futures = [
                     executor.submit(self._fetch_and_save_bands, band_urls, feature["id"])

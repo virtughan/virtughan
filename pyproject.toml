@@ -39,6 +39,8 @@ Documentation = "https://virtughan.com"
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "ipykernel>=7.2.0",
+    "ipywidgets>=8.1.0",
     "pre-commit>=4.5.1",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.1",

@@ -200,7 +200,7 @@ class VirtughanProcessor:
         band1_urls, band2_urls = self._get_band_urls(features)
 
         if self.workers > 1:
-            print("Using Parallel Processing...")
+            self.console.print("Using parallel processing...")
             self._process_parallel(band1_urls, band2_urls, features)
         else:
             self._process_sequential(band1_urls, band2_urls, features)
@@ -284,10 +284,18 @@ class VirtughanProcessor:
         aggregated_result = operations[self.operation](result_stack, axis=0)
 
         dates_numeric = np.arange(len(sorted_dates))
-        values_per_date = operations[self.operation](result_stack, axis=(1, 2, 3))
+        values_per_date = np.array(
+            operations[self.operation](result_stack, axis=(1, 2, 3)), dtype=float
+        )
 
-        slope, intercept = np.polyfit(dates_numeric, values_per_date, 1)
-        trend_line = slope * dates_numeric + intercept
+        valid_mask = np.isfinite(values_per_date)
+        if valid_mask.sum() >= 2:
+            slope, intercept = np.polyfit(
+                dates_numeric[valid_mask], values_per_date[valid_mask], 1
+            )
+            trend_line = slope * dates_numeric + intercept
+        else:
+            trend_line = np.full_like(values_per_date, np.nan)
 
         plt.figure(figsize=(10, 5))
         plt.plot(
@@ -397,7 +405,6 @@ class VirtughanProcessor:
             duration=frame_duration,
             loop=0,
         )
-        print(f"Saved timeseries GIF to {output_path}")
 
     def _search_and_filter(self) -> list[dict[str, Any]]:
         features = search_stac(
@@ -407,39 +414,39 @@ class VirtughanProcessor:
             self.end_date,
             self.cloud_cover,
         )
-        print(f"Total scenes found: {len(features)}")
+        self.console.print(f"Total scenes found: {len(features)}")
         filtered_features = filter_intersected_features(features, self.bbox)
-        print(f"Scenes covering input area: {len(filtered_features)}")
+        self.console.print(f"Scenes covering input area: {len(filtered_features)}")
         overlapping_features_removed = remove_overlapping_tiles(
             filtered_features, self.collection_config.tile_id_parser
         )
-        print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
+        self.console.print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
                 overlapping_features_removed, self.start_date, self.end_date
             )
-            print(f"Scenes after applying smart filter: {len(overlapping_features_removed)}")
+            self.console.print(f"Scenes after smart filter: {len(overlapping_features_removed)}")
         return overlapping_features_removed
 
     def compute(self) -> None:
-        print("Engine starting...")
+        self.console.print("[bold blue]Engine starting...[/bold blue]")
         os.makedirs(self.output_dir, exist_ok=True)
         if not self.band1:
             raise ValueError("Band1 is required")
 
-        print("Searching STAC .....")
+        self.console.print("Searching STAC catalog...")
         features = self._search_and_filter()
         self._process_images(features)
 
         if self.result_list and self.operation:
-            print("Aggregating results...")
+            self.console.print("Aggregating results...")
             result_aggregate = self._aggregate_results()
             output_file = os.path.join(self.output_dir, "custom_band_output_aggregate.tif")
-            print("Saving aggregated result with colormap...")
+            self.console.print("Saving aggregated result with colormap...")
             self.save_aggregated_result_with_colormap(result_aggregate, output_file)
 
         if self.timeseries:
-            print("Creating GIF and zipping TIFF files...")
+            self.console.print("Creating GIF and zipping TIFF files...")
             if self.intermediate_images:
                 self.create_gif(
                     self.intermediate_images_with_text,
@@ -450,4 +457,4 @@ class VirtughanProcessor:
                     os.path.join(self.output_dir, "tiff_files.zip"),
                 )
             else:
-                print("No images found for the given parameters")
+                self.console.print("[yellow]No images found for the given parameters[/yellow]")
