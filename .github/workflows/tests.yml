@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra api
-      - uses: astral-sh/ty-action@v1
+      - run: uv run ty check src/
 
   test:
     runs-on: ubuntu-latest
