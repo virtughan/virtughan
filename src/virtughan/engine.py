@@ -12,7 +12,8 @@ import rasterio as rio
 from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
-from tqdm import tqdm
+from rich.console import Console
+from rich.progress import Progress
 
 from .band_math import evaluate_formula
 from .collections import get_collection
@@ -62,7 +63,7 @@ class VirtughanProcessor:
         self.operation = operation
         self.timeseries = timeseries
         self.output_dir = output_dir
-        self.log_file = log_file
+        self.console = Console(file=log_file)
         self.cmap = cmap
         self.workers = workers
         self.result_list: list[np.ndarray] = []
@@ -212,22 +213,20 @@ class VirtughanProcessor:
                 executor.submit(self.fetch_process_custom_band, b1, b2)
                 for b1, b2 in zip(band1_urls, band2_urls)
             ]
-            for future in tqdm(
-                as_completed(futures),
-                total=len(futures),
-                desc="Computing Band Calculation",
-                file=self.log_file,
-            ):
-                result, crs, current_transform, name_url = future.result()
-                if result is not None:
-                    self.result_list.append(result)
-                    self.crs = crs
-                    self.transform = current_transform
-                    feature = url_to_feature[name_url]
-                    date = self._extract_date_from_feature(feature)
-                    self.dates.append(date)
-                    if self.timeseries:
-                        self._save_intermediate_image(result, feature["id"])
+            with Progress(console=self.console) as progress:
+                task = progress.add_task("Computing Band Calculation", total=len(futures))
+                for future in as_completed(futures):
+                    result, crs, current_transform, name_url = future.result()
+                    if result is not None:
+                        self.result_list.append(result)
+                        self.crs = crs
+                        self.transform = current_transform
+                        feature = url_to_feature[name_url]
+                        date = self._extract_date_from_feature(feature)
+                        self.dates.append(date)
+                        if self.timeseries:
+                            self._save_intermediate_image(result, feature["id"])
+                    progress.advance(task)
 
     def _process_sequential(
         self,
@@ -235,21 +234,19 @@ class VirtughanProcessor:
         band2_urls: list[str | None],
         features: list[dict[str, Any]],
     ) -> None:
-        for band1_url, band2_url, feature in tqdm(
-            zip(band1_urls, band2_urls, features),
-            total=len(band1_urls),
-            desc="Computing Band Calculation",
-            file=self.log_file,
-        ):
-            result, self.crs, self.transform, _ = self.fetch_process_custom_band(
-                band1_url, band2_url
-            )
-            if result is not None:
-                self.result_list.append(result)
-                date = self._extract_date_from_feature(feature)
-                self.dates.append(date)
-                if self.timeseries:
-                    self._save_intermediate_image(result, feature["id"])
+        with Progress(console=self.console) as progress:
+            task = progress.add_task("Computing Band Calculation", total=len(band1_urls))
+            for band1_url, band2_url, feature in zip(band1_urls, band2_urls, features):
+                result, self.crs, self.transform, _ = self.fetch_process_custom_band(
+                    band1_url, band2_url
+                )
+                if result is not None:
+                    self.result_list.append(result)
+                    date = self._extract_date_from_feature(feature)
+                    self.dates.append(date)
+                    if self.timeseries:
+                        self._save_intermediate_image(result, feature["id"])
+                progress.advance(task)
 
     def _save_intermediate_image(self, result: np.ndarray, image_name: str) -> None:
         output_file = os.path.join(self.output_dir, f"{image_name}_result.tif")

@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: ^docs/
+      - id: ruff-format
+        exclude: ^docs/
+
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.4.9
+    hooks:
+      - id: biome-check
+        additional_dependencies: ["@biomejs/biome@2.4.9"]
+        files: \.(js|ts|jsx|tsx|json|css|html)$
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.13.9
+    hooks:
+      - id: commitizen

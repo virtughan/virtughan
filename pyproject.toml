@@ -14,11 +14,10 @@ dependencies = [
     "matplotlib>=3.10.0",
     "rio-tiler>=7.2.2",
     "pillow>=11.0.0",
-    "tqdm>=4.67.1",
+    "rich>=14.0.0",
     "mercantile>=1.2.1",
     "numpy>=2.2.1",
     "shapely>=2.0.6",
-    "httpx>=0.28.1",
     "pystac-client>=0.8.6",
     "numexpr>=2.10.0",
     "planetary-computer>=1.0.0",
@@ -38,6 +37,7 @@ Documentation = "https://virtughan.com"
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.5.1",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.1",
     "ruff>=0.15.0",

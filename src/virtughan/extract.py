@@ -9,7 +9,8 @@ import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
-from tqdm import tqdm
+from rich.console import Console
+from rich.progress import Progress
 
 from .collections import get_collection
 from .geo import (
@@ -48,7 +49,7 @@ class ExtractProcessor:
         self.cloud_cover = cloud_cover
         self.bands_list = bands_list
         self.output_dir = output_dir
-        self.log_file = log_file
+        self.console = Console(file=log_file)
         self.workers = workers
         self.zip_output = zip_output
         self.crs: Any = None
@@ -163,23 +164,19 @@ class ExtractProcessor:
                     executor.submit(self._fetch_and_save_bands, band_urls, feature["id"])
                     for band_urls, feature in zip(band_urls_list, overlapping_features_removed)
                 ]
-                for future in tqdm(
-                    as_completed(futures),
-                    total=len(futures),
-                    desc="Extracting Bands",
-                    file=self.log_file,
-                ):
-                    result = future.result()
-                    result_lists.append(result)
+                with Progress(console=self.console) as progress:
+                    task = progress.add_task("Extracting Bands", total=len(futures))
+                    for future in as_completed(futures):
+                        result = future.result()
+                        result_lists.append(result)
+                        progress.advance(task)
         else:
-            for band_urls, feature in tqdm(
-                zip(band_urls_list, overlapping_features_removed),
-                total=len(band_urls_list),
-                desc="Extracting Bands",
-                file=self.log_file,
-            ):
-                result = self._fetch_and_save_bands(band_urls, feature["id"])
-                result_lists.append(result)
+            with Progress(console=self.console) as progress:
+                task = progress.add_task("Extracting Bands", total=len(band_urls_list))
+                for band_urls, feature in zip(band_urls_list, overlapping_features_removed):
+                    result = self._fetch_and_save_bands(band_urls, feature["id"])
+                    result_lists.append(result)
+                    progress.advance(task)
 
         if self.zip_output:
             valid_files = [f for f in result_lists if f is not None]

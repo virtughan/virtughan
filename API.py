@@ -2,7 +2,6 @@ import asyncio
 import gc
 import os
 import shutil
-import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -14,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from rich.console import Console
 from shapely.geometry import box, mapping
 from starlette.requests import Request
 from starlette.status import HTTP_504_GATEWAY_TIMEOUT
@@ -24,7 +24,15 @@ from src.virtughan.extract import ExtractProcessor
 from src.virtughan.stac import search_stac_async
 from src.virtughan.tile import TileProcessor
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    task = asyncio.create_task(cleanup_expired_folders())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 matplotlib.use("Agg")
 
@@ -41,13 +49,6 @@ EXPIRY_DURATION = timedelta(hours=EXPIRY_DURATION_HOURS)
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 120))
 STATIC_EXPORT_DIR = os.getenv("STATIC_EXPORT_DIR", "static/export")
 STATIC_DIR = os.getenv("STATIC_DIR", "static")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    task = asyncio.create_task(cleanup_expired_folders())
-    yield
-    task.cancel()
 
 
 @app.middleware("http")
@@ -68,12 +69,12 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.get("/about", response_class=HTMLResponse)
 async def read_about(request: Request):
-    return templates.TemplateResponse("about.html", {"request": request})
+    return templates.TemplateResponse(request, "about.html")
 
 
 @app.get("/list-files")
@@ -257,9 +258,9 @@ async def run_computation(
     if os.path.exists(log_file):
         os.remove(log_file)
     with open(log_file, "a") as f:
-        sys.stdout = f
+        console = Console(file=f)
 
-        print("Starting processing...")
+        console.print("Starting processing...")
         try:
             processor = VirtughanProcessor(
                 bbox=bbox,
@@ -277,10 +278,10 @@ async def run_computation(
                 collection=collection,
             )
             processor.compute()
-            print(f"Processing completed. Results saved in {output_dir}")
+            console.print(f"Processing completed. Results saved in {output_dir}")
 
         except Exception as e:
-            print(f"Error processing : {e}")
+            console.print(f"Error processing : {e}")
 
         finally:
             gc.collect()
@@ -346,6 +347,26 @@ async def get_tile(
             content={"error": "Band1 is required"},
             status_code=400,
         )
+
+    try:
+        config = get_collection(collection)
+    except ValueError as exc:
+        return JSONResponse(content={"error": str(exc)}, status_code=400)
+
+    invalid = config.validate_bands([band1])
+    if invalid:
+        return JSONResponse(
+            content={"error": f"Band '{band1}' not found in {collection} bands"},
+            status_code=400,
+        )
+    if band2:
+        invalid = config.validate_bands([band2])
+        if invalid:
+            return JSONResponse(
+                content={"error": f"Band '{band2}' not found in {collection} bands"},
+                status_code=400,
+            )
+
     if not start_date:
         start_date = (datetime.now() - timedelta(days=30 * 12)).strftime("%Y-%m-%d")
     if not end_date:
@@ -404,6 +425,18 @@ async def extract_raw_bands_as_image(
     ),
     collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
+    try:
+        config = get_collection(collection)
+    except ValueError as exc:
+        return JSONResponse(content={"error": str(exc)}, status_code=400)
+
+    invalid = config.validate_bands(bands_list.split(","))
+    if invalid:
+        return JSONResponse(
+            content={"error": f"Invalid bands: {', '.join(invalid)}. Not found in {collection}"},
+            status_code=400,
+        )
+
     uid = datetime.now().strftime("%Y%m%d%H%M%S") + "_" + str(uuid.uuid4())[:8]
 
     output_dir = f"{STATIC_EXPORT_DIR}/{uid}"
@@ -437,9 +470,9 @@ async def run_image_download(
     if os.path.exists(log_file):
         os.remove(log_file)
     with open(log_file, "a") as f:
-        sys.stdout = f
+        console = Console(file=f)
 
-        print("Starting raw band extraction...")
+        console.print("Starting raw band extraction...")
         try:
             processor = ExtractProcessor(
                 bbox=bbox,
@@ -454,10 +487,10 @@ async def run_image_download(
                 collection=collection,
             )
             processor.extract()
-            print(f"Raw band extraction completed. Results saved in {output_dir}")
+            console.print(f"Raw band extraction completed. Results saved in {output_dir}")
 
         except Exception as e:
-            print(f"Error during raw band extraction: {e}")
+            console.print(f"Error during raw band extraction: {e}")
 
         finally:
             gc.collect()
