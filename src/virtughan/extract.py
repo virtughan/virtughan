@@ -69,9 +69,14 @@ class ExtractProcessor:
             )
 
     def _get_band_urls(self, features: list[dict[str, Any]]) -> list[list[str]]:
-        return [
-            [feature["assets"][band]["href"] for band in self.bands_list] for feature in features
-        ]
+        urls = []
+        for feature in features:
+            try:
+                band_hrefs = [feature["assets"][band]["href"] for band in self.bands_list]
+                urls.append(band_hrefs)
+            except KeyError:
+                continue
+        return urls
 
     def _fetch_and_save_bands(self, band_urls: list[str], feature_id: str) -> str | None:
         try:
@@ -93,29 +98,33 @@ class ExtractProcessor:
                     if is_window_out_of_bounds(band_window):
                         return None
                     self.crs = band_cog.crs
-                    self.transform = band_cog.transform
+                    window_transform = band_cog.window_transform(band_window)
 
                     band_data = band_cog.read(1, window=band_window).astype(float)
 
                     if band_cog.res != lowest_resolution:
                         scale_factor_x = band_cog.res[0] / lowest_resolution[0]
                         scale_factor_y = band_cog.res[1] / lowest_resolution[1]
+                        dst_height = int(band_data.shape[0] * scale_factor_y)
+                        dst_width = int(band_data.shape[1] * scale_factor_x)
+                        dst_transform = window_transform * rasterio.Affine.scale(
+                            1.0 / scale_factor_x, 1.0 / scale_factor_y
+                        )
                         band_data = reproject(
                             source=band_data,
                             destination=np.empty(
-                                (
-                                    int(band_data.shape[0] * scale_factor_y),
-                                    int(band_data.shape[1] * scale_factor_x),
-                                ),
+                                (dst_height, dst_width),
                                 dtype=band_data.dtype,
                             ),
-                            src_transform=band_cog.transform,
+                            src_transform=window_transform,
                             src_crs=band_cog.crs,
-                            dst_transform=band_cog.transform
-                            * band_cog.transform.scale(scale_factor_x, scale_factor_y),
+                            dst_transform=dst_transform,
                             dst_crs=band_cog.crs,
                             resampling=Resampling.average,
                         )[0]
+                        window_transform = dst_transform
+
+                    self.transform = window_transform
 
                     bands.append(band_data)
                     bands_meta.append(band_url.split("/")[-1].split(".")[0])

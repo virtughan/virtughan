@@ -100,7 +100,7 @@ async def get_logs(uid: str):
             logs = file.readlines()[-30:]
         return Response("\n".join(logs), media_type="text/plain")
     else:
-        return JSONResponse(content={"error": "Log file not found"}, status_code=404)
+        return Response("Log file not found", media_type="text/plain", status_code=404)
 
 
 @app.get("/collections")
@@ -152,7 +152,9 @@ async def compute_aoi_over_time(
     operation: str = Query(None, description="Operation for aggregating results (default: None)"),
     timeseries: bool = Query(True, description="Should timeseries be generated (default: True)"),
     smart_filter: bool = Query(
-        False, description="Should smart filter be applied ? (default: False)"
+        False,
+        alias="smart_filters",
+        description="Should smart filter be applied ? (default: False)",
     ),
     collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
@@ -199,12 +201,10 @@ async def compute_aoi_over_time(
                 status_code=400,
             )
 
-    valid_operations = ["mean", "median", "max", "min", "std", "sum", "var"]
+    valid_operations = ["mean", "median", "max", "min", "std", "sum", "var", "mode"]
     if operation and operation not in valid_operations:
         return JSONResponse(
-            content={
-                "error": f"Invalid operation {operation}. Choose from 'mean', 'median', 'max', 'min', 'std', 'sum', 'var'"
-            },
+            content={"error": f"Invalid operation {operation}. Choose from {valid_operations}"},
             status_code=400,
         )
     bbox = list(map(float, bbox.split(",")))
@@ -323,8 +323,10 @@ async def get_tile(
     start_date: str = Query(None),
     end_date: str = Query(None),
     cloud_cover: int = Query(30),
-    band1: str = Query("visual", description="First band for custom calculation (default: red)"),
-    band2: str = Query(None, description="Second band for custom calculation (default: nir)"),
+    band1: str = Query("red", description="First band for custom calculation (default: red)"),
+    band2: str | None = Query(
+        None, description="Second band for custom calculation (default: nir)"
+    ),
     formula: str = Query(
         "band1",
         description="Formula for custom band calculation (example: (band2 - band1) / (band2 + band1) for NDVI)",
@@ -421,7 +423,9 @@ async def extract_raw_bands_as_image(
         description="Comma-separated list of bands to extract (default: red,green,blue)",
     ),
     smart_filter: bool = Query(
-        False, description="Should smart filter be applied ? (default: False)"
+        False,
+        alias="smart_filters",
+        description="Should smart filter be applied ? (default: False)",
     ),
     collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import numpy as np
+from scipy.stats import mode as scipy_mode
 from shapely.geometry import box, shape
 
 
@@ -68,10 +69,15 @@ def remove_overlapping_tiles(
     return list(filtered.values())
 
 
+def _mode_along_axis(data: np.ndarray, axis: int = 0) -> np.ndarray:
+    filled = np.ma.filled(data, np.nan)
+    return scipy_mode(filled, axis=axis, nan_policy="omit", keepdims=False).mode
+
+
 def aggregate_time_series(data: list[np.ndarray], operation: str) -> np.ndarray:
     result_stack = np.ma.stack(data)
 
-    operations = {
+    operations: dict[str, Any] = {
         "mean": np.ma.mean,
         "median": np.ma.median,
         "max": np.ma.max,
@@ -79,6 +85,7 @@ def aggregate_time_series(data: list[np.ndarray], operation: str) -> np.ndarray:
         "std": np.ma.std,
         "sum": np.ma.sum,
         "var": np.ma.var,
+        "mode": _mode_along_axis,
     }
 
     return operations[operation](result_stack, axis=0)

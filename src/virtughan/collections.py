@@ -62,6 +62,7 @@ SENTINEL2_BANDS = {
     "coastal": BandInfo("coastal", "coastal", 60),
     "nir09": BandInfo("nir09", "nir09", 60),
     "scl": BandInfo("scl", "scl", 20),
+    "visual": BandInfo("visual", "visual", 10),
 }
 
 LANDSAT_BANDS = {

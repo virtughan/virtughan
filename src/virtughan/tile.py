@@ -121,9 +121,17 @@ class TileProcessor:
             raise HTTPException(status_code=404, detail="No images found for the given parameters")
 
         results = filter_latest_image_per_grid(results, collection_config.tile_id_parser)
+        if not results:
+            raise HTTPException(status_code=404, detail="No images found after filtering")
         feature = results[0]
+        if band1 not in feature["assets"]:
+            raise HTTPException(
+                status_code=400, detail=f"Band '{band1}' not found in image assets"
+            )
         band1_url = feature["assets"][band1]["href"]
-        band2_url = feature["assets"][band2]["href"] if band2 else None
+        band2_url = (
+            feature["assets"][band2]["href"] if band2 and band2 in feature["assets"] else None
+        )
 
         try:
             tasks = [self.fetch_tile(band1_url, x, y, z)]
@@ -170,12 +178,21 @@ class TileProcessor:
         results = smart_filter_images(results, start_date, end_date)
 
         tasks = []
+        valid_features = []
         for feature in results:
+            if band1 not in feature["assets"]:
+                continue
+            if band2 and band2 not in feature["assets"]:
+                continue
             band1_url = feature["assets"][band1]["href"]
             band2_url = feature["assets"][band2]["href"] if band2 else None
             tasks.append(self.fetch_tile(band1_url, x, y, z))
             if band2_url:
                 tasks.append(self.fetch_tile(band2_url, x, y, z))
+            valid_features.append(feature)
+
+        if not valid_features:
+            raise HTTPException(status_code=404, detail="No images with requested bands found")
 
         try:
             tiles = await asyncio.gather(*tasks)
@@ -197,4 +214,4 @@ class TileProcessor:
             result = evaluate_formula(formula, {"band1": band1_agg})
 
         image = self.apply_colormap(result, colormap_str)
-        return image, results[0]
+        return image, valid_features[0]

@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       document.getElementById("search-button").classList.add('bg-gray-500', 'pointer-events-none');
       document.getElementById("search-button").classList.remove('bg-blue-700');
 
-      document.getElementById("collection-select-search").value = "sentinel-2-l2a";
       tile_params.collection = "sentinel-2-l2a";
     }
     setDefaultFilters();
@@ -152,7 +151,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
       document.getElementById("operation_menu").value = "median";
 
-      document.getElementById("collection-select-export").value = "sentinel-2-l2a";
       export_params.collection = "sentinel-2-l2a";
     }
     setDefaultFiltersExport();

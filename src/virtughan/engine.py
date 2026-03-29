@@ -14,6 +14,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 from rich.console import Console
 from rich.progress import Progress
+from scipy.stats import mode as scipy_mode
 
 from .band_math import evaluate_formula
 from .collections import get_collection
@@ -180,12 +181,15 @@ class VirtughanProcessor:
             return resampled_band1, band2_data, band2_transform
 
     def _get_band_urls(self, features: list[dict[str, Any]]) -> tuple[list[str], list[str | None]]:
-        band1_urls = [feature["assets"][self.band1]["href"] for feature in features]
-        band2_urls: list[str | None] = (
-            [feature["assets"][self.band2]["href"] for feature in features]
-            if self.band2
-            else [None] * len(features)
-        )
+        band1_urls = []
+        band2_urls: list[str | None] = []
+        for feature in features:
+            if self.band1 not in feature["assets"]:
+                continue
+            if self.band2 and self.band2 not in feature["assets"]:
+                continue
+            band1_urls.append(feature["assets"][self.band1]["href"])
+            band2_urls.append(feature["assets"][self.band2]["href"] if self.band2 else None)
         return band1_urls, band2_urls
 
     def _extract_date_from_feature(self, feature: dict[str, Any]) -> str:
@@ -262,7 +266,11 @@ class VirtughanProcessor:
         padded_result_list = [self._pad_array(arr, max_shape) for arr in sorted_results]
         result_stack = np.ma.stack(padded_result_list)
 
-        operations = {
+        def _mode_along_axis(data: np.ndarray, axis: int = 0) -> np.ndarray:
+            filled = np.ma.filled(data, np.nan)
+            return scipy_mode(filled, axis=axis, nan_policy="omit", keepdims=False).mode
+
+        operations: dict[str, Any] = {
             "mean": np.ma.mean,
             "median": np.ma.median,
             "max": np.ma.max,
@@ -270,6 +278,7 @@ class VirtughanProcessor:
             "std": np.ma.std,
             "sum": np.ma.sum,
             "var": np.ma.var,
+            "mode": _mode_along_axis,
         }
 
         aggregated_result = operations[self.operation](result_stack, axis=0)

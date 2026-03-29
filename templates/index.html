@@ -392,13 +392,8 @@
             <div class="tab-panel hidden">
       
             <div class="border-b border-gray-900/10 p-4 overflow-y-scroll custom-scrollbar tab-scrollable-content">
-              <div class="pb-4">
-                <label class="block text-sm/6 font-medium text-gray-900">Collection <span class="text-lg text-black-600">*</span></label>
-                <select id="collection-select-search" class="mt-2 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
-                  <option value="sentinel-2-l2a" selected>Sentinel-2 L2A</option>
-                  <option value="landsat-c2-l2">Landsat C2 L2</option>
-                </select>
-              </div>
+              <!-- <h2 class="text-base/7 font-semibold text-gray-900">Apply Filters</h2>
+              <p class="mt-1 text-sm/6 text-gray-600">Select the filters you want to apply.</p> -->
               <div id = "filterOption_search" class = "pb-4">
                 <label id="listbox-label_search" class="block text-sm/6 font-medium text-gray-900">Filter Option <span class="text-lg text-black-600">*</span></label>
                 <div class="relative mt-2">
@@ -658,13 +653,6 @@
             <div class="tab-panel hidden">
               <!-- Content for Tab 3 -->
               <div id="sidebar1" class = "overflow-y-scroll custom-scrollbar  p-4 tab-scrollable-content" style = "max-height: 550px;">
-               <div class="pb-4">
-                <label class="block text-sm/6 font-medium text-gray-900">Collection <span class="text-lg text-black-600">*</span></label>
-                <select id="collection-select-export" class="mt-2 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
-                  <option value="sentinel-2-l2a" selected>Sentinel-2 L2A</option>
-                  <option value="landsat-c2-l2">Landsat C2 L2</option>
-                </select>
-               </div>
                <div class = "pb-4">
                 <label class="block text-sm font-medium text-gray-800 pb-2">Select Area of Interest <i title = "Select the area within map window or draw" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
                 <!-- dropdown start -->
@@ -835,7 +823,28 @@
                        Select Bands
                     </button>
                     <div id="dropdownMenuBands" class="hidden absolute mt-2 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10">
-                      <div id="bandCheckboxContainer" class="max-h-60 overflow-auto custom-scrollbar">
+                      <div class="max-h-60 overflow-auto custom-scrollbar">
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="VISUAL" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">VISUAL Bands</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="RED" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">RED</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="GREEN" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">GREEN</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="BLUE" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">BLUE</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="NIR" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">NIR</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="SWIR22" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">SWIR22</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="REDEDGE2" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">REDEDGE2</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="REDEDGE3" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">REDEDGE3</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="REDEDGE1" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">REDEDGE1</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="SWIR16" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">SWIR16</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="WVP" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">WVP</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="NIR08" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">NIR08</span></label>
+                        <!-- <label class="flex items-center px-3 py-2"><input type="checkbox" value="SCL" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">SCL</span></label> -->
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="AOT" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">AOT</span></label>
+        
+                        <!-- Add more options as needed -->
+                        <label class="block px-3 py-2 font-semibold text-gray-700 text-sm">Semantic Bands</label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="COASTAL" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">COASTAL</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="NIR09" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">NIR09</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="CLOUD" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">CLOUD</span></label>
+                        <label class="flex items-center px-3 py-2"><input type="checkbox" value="SNOW" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox"><span class="ml-2 text-gray-700 text-sm">SNOW</span></label>
                       </div>
                     </div>
                   </div>
@@ -988,12 +997,56 @@
                   <label class="block text-sm font-medium text-gray-700">Band 1</label>
                   <select id="band1" style="border:1px solid #dedede;" class="mt-1 block w-full pl-3 pr-10 py-2 text-base text-gray-700 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md max-h-[52px] overflow-y-auto custom-scrollbar">
                     <option value="">Select Band 1</option>
+                    <optgroup label="Bands">
+                      <option value="RED">RED</option>
+                      <option value="GREEN">GREEN</option>
+                      <option value="BLUE">BLUE</option>
+                      <option value="VISUAL">VISUAL</option>
+                      <option value="NIR">NIR</option>
+                      <option value="SWIR22">SWIR22</option>
+                      <option value="REDEDGE2">REDEDGE2</option>
+                      <option value="REDEDGE3">REDEDGE3</option>
+                      <option value="REDEDGE1">REDEDGE1</option>
+                      <option value="SWIR16">SWIR16</option>
+                      <option value="WVP">WVP</option>
+                      <option value="NIR08">NIR08</option>
+                      <option value="SCL">SCL</option>
+                      <option value="AOT">AOT</option>
+                    </optgroup>
+                    <optgroup label="Semantic Bands">
+                      <option value="COASTAL">COASTAL</option>
+                      <option value="NIR09">NIR09</option>
+                      <option value="CLOUD">CLOUD</option>
+                      <option value="SNOW">SNOW</option>
+                    </optgroup>
                   </select>                  
               </div>
               <div class="w-full md:w-1/2">
                   <label class="block text-sm font-medium text-gray-700">Band 2</label>
                   <select id="band2" style="border:1px solid #dedede;" class="mt-1 block w-full pl-3 pr-10 py-2 text-base text-gray-700 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="">Select Band 2</option>
+                    <option value="">Select Band 1</option>
+                    <optgroup label="Bands">
+                      <option value="RED">RED</option>
+                      <option value="GREEN">GREEN</option>
+                      <option value="BLUE">BLUE</option>
+                      <option value="VISUAL">VISUAL</option>
+                      <option value="NIR">NIR</option>
+                      <option value="SWIR22">SWIR22</option>
+                      <option value="REDEDGE2">REDEDGE2</option>
+                      <option value="REDEDGE3">REDEDGE3</option>
+                      <option value="REDEDGE1">REDEDGE1</option>
+                      <option value="SWIR16">SWIR16</option>
+                      <option value="WVP">WVP</option>
+                      <option value="NIR08">NIR08</option>
+                      <option value="SCL">SCL</option>
+                      <option value="AOT">AOT</option>
+                    </optgroup>
+                    <optgroup label="Semantic Bands">
+                      <option value="COASTAL">COASTAL</option>
+                      <option value="NIR09">NIR09</option>
+                      <option value="CLOUD">CLOUD</option>
+                      <option value="SNOW">SNOW</option>
+                    </optgroup>
                   </select>
                   
               </div>
@@ -1546,12 +1599,47 @@
         dropdownMenu.classList.toggle('hidden');
     });
 
+    // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
         if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
             dropdownMenu.classList.add('hidden');
         }
     });
+
+    // Update button text with selected options
+    const checkboxes = dropdownMenu.querySelectorAll('.band-checkbox');
+    checkboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const selectedOptions = Array.from(checkboxes).filter(chk => chk.checked).map(chk => chk.value);
+            // console.log(selectedOptions);
+            dropdownButton.innerHTML = selectedOptions.length > 0 ? selectedOptions.join(', ') : `<img src="static/img/select-icon.png" alt="" class="size-5 shrink-0 rounded-full mr-2">Select Bands`;
+            
+
+            if (selectedOptions.includes("VISUAL")) {
+                // Remove "visual"
+                var updatedOptions = selectedOptions.filter(opt => opt !== "VISUAL");
+
+                // Ensure "red", "green", and "blue" are included (avoid duplicates)
+                const rgbBands = ["RED", "GREEN", "BLUE"];
+                rgbBands.forEach(band => {
+                    if (!updatedOptions.includes(band)) {
+                        updatedOptions.push(band);
+                    }
+                });
+
+                // Update selectedOptions
+                selectedOptions.length = 0; // Clear original array
+                selectedOptions.push(...updatedOptions);
+            }
+            export_params.bands_list = selectedOptions.length > 0 ? selectedOptions.join(',').toLowerCase() : "";
+
+            document.getElementById("export-map-view-button").classList.remove('bg-gray-500', 'pointer-events-none');
+            document.getElementById("export-map-view-button").classList.add('bg-blue-700');
+        });
+    });
 });
+
+
   </script>
 
 
@@ -1560,82 +1648,6 @@
     const navContentMobile = document.getElementById('nav-content-mobile');
     navContentMobile.classList.toggle('hidden');
   });
-</script>
-
-<script>
-  function populateBandSelect(selectElement, bands) {
-    var currentValue = selectElement.value;
-    selectElement.innerHTML = '<option value="">Select Band</option>';
-    var optgroup = document.createElement('optgroup');
-    optgroup.label = 'Bands';
-    Object.keys(bands).forEach(function(bandName) {
-      var option = document.createElement('option');
-      option.value = bandName.toUpperCase();
-      option.textContent = bandName.toUpperCase() + ' (' + bands[bandName].resolution + 'm)';
-      optgroup.appendChild(option);
-    });
-    selectElement.appendChild(optgroup);
-
-    if (currentValue) {
-      var matchingOption = selectElement.querySelector('option[value="' + currentValue + '"]');
-      if (matchingOption) {
-        selectElement.value = currentValue;
-      }
-    }
-  }
-
-  function populateBandCheckboxes(container, bands) {
-    container.innerHTML = '';
-    Object.keys(bands).forEach(function(bandName) {
-      var label = document.createElement('label');
-      label.className = 'flex items-center px-3 py-2';
-      label.innerHTML = '<input type="checkbox" value="' + bandName.toUpperCase() + '" class="form-checkbox h-4 w-4 text-blue-600 band-checkbox">' +
-        '<span class="ml-2 text-gray-700 text-sm">' + bandName.toUpperCase() + ' (' + bands[bandName].resolution + 'm)</span>';
-      container.appendChild(label);
-    });
-    bindBandCheckboxEvents();
-  }
-
-  function bindBandCheckboxEvents() {
-    var dropdownButton = document.getElementById('dropdownButtonBands');
-    var container = document.getElementById('bandCheckboxContainer');
-    var checkboxes = container.querySelectorAll('.band-checkbox');
-    checkboxes.forEach(function(checkbox) {
-      checkbox.addEventListener('change', function() {
-        var selectedOptions = Array.from(container.querySelectorAll('.band-checkbox:checked')).map(function(chk) { return chk.value; });
-        dropdownButton.innerHTML = selectedOptions.length > 0 ? selectedOptions.join(', ') : '<img src="static/img/select-icon.png" alt="" class="size-5 shrink-0 rounded-full mr-2">Select Bands';
-        export_params.bands_list = selectedOptions.length > 0 ? selectedOptions.join(',').toLowerCase() : '';
-        document.getElementById('export-map-view-button').classList.remove('bg-gray-500', 'pointer-events-none');
-        document.getElementById('export-map-view-button').classList.add('bg-blue-700');
-      });
-    });
-  }
-
-  function loadBandsForCollection(collection) {
-    fetch('/bands?collection=' + encodeURIComponent(collection))
-      .then(function(response) { return response.json(); })
-      .then(function(bands) {
-        populateBandSelect(document.getElementById('band1'), bands);
-        populateBandSelect(document.getElementById('band2'), bands);
-        populateBandCheckboxes(document.getElementById('bandCheckboxContainer'), bands);
-      });
-  }
-
-  document.getElementById('collection-select-search').addEventListener('change', function() {
-    tile_params.collection = this.value;
-    document.getElementById('collection-select-export').value = this.value;
-    export_params.collection = this.value;
-    loadBandsForCollection(this.value);
-  });
-
-  document.getElementById('collection-select-export').addEventListener('change', function() {
-    export_params.collection = this.value;
-    document.getElementById('collection-select-search').value = this.value;
-    tile_params.collection = this.value;
-    loadBandsForCollection(this.value);
-  });
-
-  loadBandsForCollection('sentinel-2-l2a');
 </script>
 
   </body>
