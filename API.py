@@ -1,6 +1,5 @@
 import asyncio
 import gc
-import json
 import os
 import shutil
 import sys
@@ -19,10 +18,11 @@ from shapely.geometry import box, mapping
 from starlette.requests import Request
 from starlette.status import HTTP_504_GATEWAY_TIMEOUT
 
+from src.virtughan.collections import COLLECTIONS, get_collection
 from src.virtughan.engine import VirtughanProcessor
 from src.virtughan.extract import ExtractProcessor
+from src.virtughan.stac import search_stac_async
 from src.virtughan.tile import TileProcessor
-from src.virtughan.utils import search_stac_api_async
 
 app = FastAPI()
 
@@ -45,8 +45,9 @@ STATIC_DIR = os.getenv("STATIC_DIR", "static")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(cleanup_expired_folders())
+    task = asyncio.create_task(cleanup_expired_folders())
     yield
+    task.cancel()
 
 
 @app.middleware("http")
@@ -75,10 +76,6 @@ async def read_about(request: Request):
     return templates.TemplateResponse("about.html", {"request": request})
 
 
-with open("data/sentinel-2-bands.json") as f:
-    sentinel2_assets = json.load(f)
-
-
 @app.get("/list-files")
 async def list_files(uid: str):
     directory = f"{STATIC_EXPORT_DIR}/{uid}"
@@ -98,40 +95,44 @@ async def list_files(uid: str):
 async def get_logs(uid: str):
     log_file = f"{STATIC_EXPORT_DIR}/{uid}/runtime.log"
     if os.path.exists(log_file):
-        with open(log_file, "r") as file:
+        with open(log_file) as file:
             logs = file.readlines()[-30:]
         return Response("\n".join(logs), media_type="text/plain")
     else:
         return JSONResponse(content={"error": "Log file not found"}, status_code=404)
 
 
-@app.get("/sentinel2-bands")
-async def get_sentinel2_bands(
-    band: str = Query(None, description="Band name to filter"),
-):
-    if band:
-        if band in sentinel2_assets:
-            band_data = sentinel2_assets[band]
-            filtered_data = {
-                "type": band_data.get("type"),
-                "title": band_data.get("title"),
-                "eo:bands": band_data.get("eo:bands"),
-                "gsd": band_data.get("gsd"),
-                "raster:bands": band_data.get("raster:bands"),
+@app.get("/collections")
+async def list_collections():
+    return {
+        name: {
+            "bands": {
+                band_name: {"resolution": band.resolution, "common_name": band.common_name}
+                for band_name, band in config.bands.items()
             }
-            return filtered_data
-        else:
-            raise HTTPException(status_code=404, detail="Band not found")
-    else:
-        return {key: value["title"] for key, value in sentinel2_assets.items()}
+        }
+        for name, config in COLLECTIONS.items()
+    }
+
+
+@app.get("/bands")
+async def get_bands(
+    collection: str = Query("sentinel-2-l2a", description="Collection name"),
+):
+    try:
+        config = get_collection(collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        band_name: {"resolution": band.resolution, "common_name": band.common_name}
+        for band_name, band in config.bands.items()
+    }
 
 
 @app.get("/export")
 async def compute_aoi_over_time(
     background_tasks: BackgroundTasks,
-    bbox: str = Query(
-        ..., description="Bounding box in the format 'west,south,east,north'"
-    ),
+    bbox: str = Query(..., description="Bounding box in the format 'west,south,east,north'"),
     start_date: str = Query(
         (datetime.now() - timedelta(days=365 * 1)).strftime("%Y-%m-%d"),
         description="Start date in YYYY-MM-DD format (default: 1 years ago)",
@@ -145,21 +146,14 @@ async def compute_aoi_over_time(
         "(band2 - band1) / (band2 + band1)",
         description="Formula for custom band calculation (default: NDVI)",
     ),
-    band1: str = Query(
-        "red", description="First band for custom calculation (default: red)"
-    ),
-    band2: str = Query(
-        "nir", description="Second band for custom calculation (default: nir)"
-    ),
-    operation: str = Query(
-        None, description="Operation for aggregating results (default: None)"
-    ),
-    timeseries: bool = Query(
-        True, description="Should timeseries be generated (default: True)"
-    ),
+    band1: str = Query("red", description="First band for custom calculation (default: red)"),
+    band2: str = Query("nir", description="Second band for custom calculation (default: nir)"),
+    operation: str = Query(None, description="Operation for aggregating results (default: None)"),
+    timeseries: bool = Query(True, description="Should timeseries be generated (default: True)"),
     smart_filter: bool = Query(
         False, description="Should smart filter be applied ? (default: False)"
     ),
+    collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
     if timeseries is False and operation is None:
         return JSONResponse(
@@ -172,26 +166,34 @@ async def compute_aoi_over_time(
             status_code=400,
         )
 
-    if band1 not in sentinel2_assets.keys():
+    try:
+        config = get_collection(collection)
+    except ValueError as exc:
+        return JSONResponse(content={"error": str(exc)}, status_code=400)
+
+    invalid = config.validate_bands([band1])
+    if invalid:
         return JSONResponse(
-            content={"error": f"Band '{band1}' not found in Sentinel-2 bands"},
+            content={"error": f"Band '{band1}' not found in {collection} bands"},
             status_code=400,
         )
 
-    if band2 and band2 not in sentinel2_assets.keys():
-        return JSONResponse(
-            content={"error": f"Band '{band2}' not found in Sentinel-2 bands"},
-            status_code=400,
-        )
+    if band2:
+        invalid = config.validate_bands([band2])
+        if invalid:
+            return JSONResponse(
+                content={"error": f"Band '{band2}' not found in {collection} bands"},
+                status_code=400,
+            )
 
     if band2 and band1 != band2:
-        band1_gsd = sentinel2_assets[band1].get("gsd")
-        band2_gsd = sentinel2_assets[band2].get("gsd")
+        band1_resolution = config.bands[band1].resolution
+        band2_resolution = config.bands[band2].resolution
 
-        if band1_gsd != band2_gsd:
+        if band1_resolution != band2_resolution:
             return JSONResponse(
                 content={
-                    "error": f"Band resolution mismatch: '{band1}' has {band1_gsd}m resolution while '{band2}' has {band2_gsd}m resolution"
+                    "error": f"Band resolution mismatch: '{band1}' has {band1_resolution}m resolution while '{band2}' has {band2_resolution}m resolution"
                 },
                 status_code=400,
             )
@@ -226,6 +228,7 @@ async def compute_aoi_over_time(
         timeseries,
         output_dir,
         smart_filter,
+        collection,
     )
     return JSONResponse(
         content={
@@ -248,6 +251,7 @@ async def run_computation(
     timeseries,
     output_dir,
     smart_filter,
+    collection,
 ):
     log_file = f"{output_dir}/runtime.log"
     if os.path.exists(log_file):
@@ -270,12 +274,12 @@ async def run_computation(
                 output_dir=output_dir,
                 log_file=f,
                 smart_filter=smart_filter,
+                collection=collection,
             )
             processor.compute()
             print(f"Processing completed. Results saved in {output_dir}")
 
         except Exception as e:
-            # raise e
             print(f"Error processing : {e}")
 
         finally:
@@ -284,25 +288,27 @@ async def run_computation(
 
 @app.get("/search")
 async def search_images(
-    bbox: str = Query(
-        ..., description="Bounding box in the format 'west,south,east,north'"
-    ),
+    bbox: str = Query(..., description="Bounding box in the format 'west,south,east,north'"),
     cloud_cover: int = Query(30, description="Maximum cloud cover percentage"),
     start_date: str = Query(None, description="Start date in YYYY-MM-DD format"),
     end_date: str = Query(None, description="End date in YYYY-MM-DD format"),
+    collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
     if not start_date:
         start_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
     if not end_date:
         end_date = datetime.now().strftime("%Y-%m-%d")
 
+    try:
+        config = get_collection(collection)
+    except ValueError as exc:
+        return JSONResponse(content={"error": str(exc)}, status_code=400)
+
     west, south, east, north = map(float, bbox.split(","))
     bbox_polygon = box(west, south, east, north)
     bbox_geojson = mapping(bbox_polygon)
 
-    response = await search_stac_api_async(
-        bbox_geojson, start_date, end_date, cloud_cover
-    )
+    response = await search_stac_async(config, bbox_geojson, start_date, end_date, cloud_cover)
 
     feature_collection = {"type": "FeatureCollection", "features": response}
     return JSONResponse(content=feature_collection)
@@ -316,12 +322,8 @@ async def get_tile(
     start_date: str = Query(None),
     end_date: str = Query(None),
     cloud_cover: int = Query(30),
-    band1: str = Query(
-        "visual", description="First band for custom calculation (default: red)"
-    ),
-    band2: str = Query(
-        None, description="Second band for custom calculation (default: nir)"
-    ),
+    band1: str = Query("visual", description="First band for custom calculation (default: red)"),
+    band2: str = Query(None, description="Second band for custom calculation (default: nir)"),
     formula: str = Query(
         "band1",
         description="Formula for custom band calculation (example: (band2 - band1) / (band2 + band1) for NDVI)",
@@ -331,9 +333,8 @@ async def get_tile(
         "median",
         description="Operation for aggregating results (default: mean), Only applicable if timeseries is true",
     ),
-    timeseries: bool = Query(
-        False, description="Should timeseries be analyzed (default: False)"
-    ),
+    timeseries: bool = Query(False, description="Should timeseries be analyzed (default: False)"),
+    collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
     if z < 10 or z > 23:
         return JSONResponse(
@@ -366,6 +367,7 @@ async def get_tile(
             colormap_str,
             operation=operation,
             latest=(timeseries is False),
+            collection=collection,
         )
         computation_time = time.time() - start_time
 
@@ -377,18 +379,13 @@ async def get_tile(
 
         return Response(content=image_bytes, media_type="image/png", headers=headers)
     except Exception as ex:
-        # raise ex
-        return JSONResponse(
-            content={"error": f"Computation Error:  {str(ex)}"}, status_code=504
-        )
+        return JSONResponse(content={"error": f"Computation Error:  {ex!s}"}, status_code=504)
 
 
 @app.get("/image-download")
 async def extract_raw_bands_as_image(
     background_tasks: BackgroundTasks,
-    bbox: str = Query(
-        ..., description="Bounding box in the format 'west,south,east,north'"
-    ),
+    bbox: str = Query(..., description="Bounding box in the format 'west,south,east,north'"),
     start_date: str = Query(
         (datetime.now() - timedelta(days=30 * 1)).strftime("%Y-%m-%d"),
         description="Start date in YYYY-MM-DD format (default: 1 year ago)",
@@ -405,6 +402,7 @@ async def extract_raw_bands_as_image(
     smart_filter: bool = Query(
         False, description="Should smart filter be applied ? (default: False)"
     ),
+    collection: str = Query("sentinel-2-l2a", description="Satellite collection to use"),
 ):
     uid = datetime.now().strftime("%Y%m%d%H%M%S") + "_" + str(uuid.uuid4())[:8]
 
@@ -424,6 +422,7 @@ async def extract_raw_bands_as_image(
         bands_list.split(","),
         output_dir,
         smart_filter,
+        collection,
     )
     return {
         "message": f"Raw band extraction started in background: {output_dir}",
@@ -432,7 +431,7 @@ async def extract_raw_bands_as_image(
 
 
 async def run_image_download(
-    bbox, start_date, end_date, cloud_cover, bands_list, output_dir, smart_filter
+    bbox, start_date, end_date, cloud_cover, bands_list, output_dir, smart_filter, collection
 ):
     log_file = f"{output_dir}/runtime.log"
     if os.path.exists(log_file):
@@ -452,6 +451,7 @@ async def run_image_download(
                 log_file=f,
                 zip_output=True,
                 smart_filter=smart_filter,
+                collection=collection,
             )
             processor.extract()
             print(f"Raw band extraction completed. Results saved in {output_dir}")
@@ -470,10 +470,8 @@ async def cleanup_expired_folders():
         for folder_name in os.listdir(STATIC_EXPORT_DIR):
             folder_path = os.path.join(STATIC_EXPORT_DIR, folder_name)
             if os.path.isdir(folder_path):
-                folder_creation_time = datetime.strptime(
-                    folder_name.split("_")[0], "%Y%m%d%H%M%S"
-                )
+                folder_creation_time = datetime.strptime(folder_name.split("_")[0], "%Y%m%d%H%M%S")
                 if now - folder_creation_time > EXPIRY_DURATION:
                     shutil.rmtree(folder_path)
                     print(f"Deleted expired folder: {folder_path}")
-        await asyncio.sleep(1 * 60 * 60)  # Run the cleanup task every 1 hours
+        await asyncio.sleep(1 * 60 * 60)

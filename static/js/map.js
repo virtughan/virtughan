@@ -195,7 +195,8 @@ var map = L.map("map").setView([28.202082, 83.987222], 10);
           "band2": "nir",           
           "formula": "band1",
           "timeseries": "false",
-          "operation": "median"
+          "operation": "median",
+          "collection": "sentinel-2-l2a"
       }
 
       var export_params = {
@@ -209,7 +210,8 @@ var map = L.map("map").setView([28.202082, 83.987222], 10);
         "operation": "median",
         "timeseries": "false",
         "bands_list":"",
-        "smart_filters":"false"
+        "smart_filters":"false",
+        "collection": "sentinel-2-l2a"
       }
 
       // var formula = "(band2-band1)/(band2+band1)";
@@ -238,7 +240,7 @@ var map = L.map("map").setView([28.202082, 83.987222], 10);
 
         var checkedTimeseriesSearch = document.getElementById("timeSeries_search").checked;
         
-        var encodedUrl_tiles = `/tile/{z}/{x}/{y}?start_date=${encodeURIComponent(tile_params.startDate)}&end_date=${encodeURIComponent(tile_params.endDate)}&cloud_cover=${encodeURIComponent(tile_params.cloudCover)}&formula=${encodeURIComponent(tile_params.formula)}&band1=${encodeURIComponent(tile_params.band1)}&band2=${encodeURIComponent(tile_params.band2)}&timeseries=${encodeURIComponent(tile_params.timeseries)}`;
+        var encodedUrl_tiles = `/tile/{z}/{x}/{y}?start_date=${encodeURIComponent(tile_params.startDate)}&end_date=${encodeURIComponent(tile_params.endDate)}&cloud_cover=${encodeURIComponent(tile_params.cloudCover)}&formula=${encodeURIComponent(tile_params.formula)}&band1=${encodeURIComponent(tile_params.band1)}&band2=${encodeURIComponent(tile_params.band2)}&timeseries=${encodeURIComponent(tile_params.timeseries)}&collection=${encodeURIComponent(tile_params.collection)}`;
         if(checkedTimeseriesSearch){
           encodedUrl_tiles += `&operation=${encodeURIComponent(tile_params.operation)}`;
         }
@@ -346,7 +348,7 @@ var map = L.map("map").setView([28.202082, 83.987222], 10);
           }
 
           fetch(
-            `/search?bbox=${tile_params.bbox}&start_date=${tile_params.startDate}&end_date=${tile_params.endDate}&cloud_cover=${tile_params.cloudCover}`
+            `/search?bbox=${tile_params.bbox}&start_date=${tile_params.startDate}&end_date=${tile_params.endDate}&cloud_cover=${tile_params.cloudCover}&collection=${encodeURIComponent(tile_params.collection)}`
           )
             .then((response) => response.json())
             .then((data) => {
