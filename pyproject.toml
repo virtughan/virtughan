@@ -19,7 +19,9 @@ dependencies = [
     "numpy>=2.2.1",
     "shapely>=2.0.6",
     "httpx>=0.28.1",
-    "requests>=2.32.3",
+    "pystac-client>=0.8.6",
+    "numexpr>=2.10.0",
+    "planetary-computer>=1.0.0",
 ]
 
 [project.optional-dependencies]
