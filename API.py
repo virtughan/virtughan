@@ -163,6 +163,10 @@ async def compute_aoi_over_time(
             content={"error": "Operation is required if timeseries is disabled"},
             status_code=400,
         )
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = datetime.now().strftime("%Y-%m-%d")
     if band1 is None:
         return JSONResponse(
             content={"error": "Band1 is required"},
