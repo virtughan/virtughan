@@ -171,15 +171,8 @@ class ExtractProcessor:
         str: Path to the saved GeoTIFF file.
         """
         try:
-            bands = []
+            band_records = []
             bands_meta = []
-            resolutions = []
-
-            for band_url in band_urls:
-                with rasterio.open(band_url) as band_cog:
-                    resolutions.append(band_cog.res)
-
-            lowest_resolution = max(resolutions, key=lambda res: res[0] * res[1])
 
             for band_url in band_urls:
                 with rasterio.open(band_url) as band_cog:
@@ -190,34 +183,54 @@ class ExtractProcessor:
 
                     if self._is_window_out_of_bounds(band_window):
                         return None
-                    self.crs = band_cog.crs
-                    self.transform = band_cog.transform
 
                     band_data = band_cog.read(1, window=band_window).astype(float)
+                    band_window_transform = band_cog.window_transform(band_window)
 
-                    # Resample if necessary
-                    if band_cog.res != lowest_resolution:
-                        scale_factor_x = band_cog.res[0] / lowest_resolution[0]
-                        scale_factor_y = band_cog.res[1] / lowest_resolution[1]
-                        band_data = reproject(
-                            source=band_data,
-                            destination=np.empty(
-                                (
-                                    int(band_data.shape[0] * scale_factor_y),
-                                    int(band_data.shape[1] * scale_factor_x),
-                                ),
-                                dtype=band_data.dtype,
-                            ),
-                            src_transform=band_cog.transform,
-                            src_crs=band_cog.crs,
-                            dst_transform=band_cog.transform
-                            * band_cog.transform.scale(scale_factor_x, scale_factor_y),
-                            dst_crs=band_cog.crs,
-                            resampling=Resampling.average,
-                        )[0]
-
-                    bands.append(band_data)
+                    band_records.append(
+                        {
+                            "data": band_data,
+                            "crs": band_cog.crs,
+                            "transform": band_window_transform,
+                            "resolution": band_cog.res,
+                        }
+                    )
                     bands_meta.append(band_url.split("/")[-1].split(".")[0])
+
+            if not band_records:
+                return None
+
+            # Use the coarsest input band as the reference grid so all exported bands share
+            # one geospatial transform and align correctly.
+            reference_record = max(
+                band_records,
+                key=lambda rec: rec["resolution"][0] * rec["resolution"][1],
+            )
+
+            self.crs = reference_record["crs"]
+            self.transform = reference_record["transform"]
+            reference_shape = reference_record["data"].shape
+
+            bands = []
+            for record in band_records:
+                if (
+                    record["data"].shape == reference_shape
+                    and record["crs"] == self.crs
+                    and record["transform"] == self.transform
+                ):
+                    bands.append(record["data"])
+                else:
+                    destination = np.empty(reference_shape, dtype=record["data"].dtype)
+                    reproject(
+                        source=record["data"],
+                        destination=destination,
+                        src_transform=record["transform"],
+                        src_crs=record["crs"],
+                        dst_transform=self.transform,
+                        dst_crs=self.crs,
+                        resampling=Resampling.average,
+                    )
+                    bands.append(destination)
 
             print("Stacking Bands...")
             stacked_bands = np.stack(bands)
