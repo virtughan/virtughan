@@ -79,6 +79,7 @@ image_bytes, feature = await tile_processor.cached_generate_tile(
     band2="nir",
     formula="(band2-band1)/(band2+band1)",
     colormap_str="RdYlGn",
+    collection="sentinel-2-l2a",
 )
 
 image = Image.open(BytesIO(image_bytes))
@@ -112,7 +113,7 @@ processor = VirtughanProcessor(
     operation="median",
     timeseries=True,
     output_dir="virtughan_output",
-    workers=16
+    collection="sentinel-2-l2a",
 )
 
 processor.compute()
@@ -132,9 +133,24 @@ This research introduces methods on how to use COGs, the SpatioTemporal Asset Ca
 
 ## Local Setup 
 
-This project has FASTAPI and Plain JS Frontend.
+This project has FastAPI backend and a plain JS frontend.
 
-Inorder to setup project , follow [here](./docs/install.md)
+### Quick Start
+
+```bash
+git clone https://github.com/virtughan/virtughan.git
+cd virtughan
+just run
+```
+
+### Docker
+
+```bash
+docker build -t virtughan .
+docker run --rm -p 8080:8080 virtughan
+```
+
+For full setup details and configuration options, see the [installation guide](./docs/install.md).
 
 ## Tech Stack 
 <p align="left">
