@@ -1,0 +1,13 @@
+.venv
+.git
+.github
+.pytest_cache
+__pycache__
+*.pyc
+.ruff_cache
+virtughan_output
+static/export
+sentinel_images
+docs
+*.egg-info
+.mypy_cache

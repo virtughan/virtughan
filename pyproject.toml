@@ -1,13 +1,25 @@
 [project]
 name = "virtughan"
 version = "1.0.1"
-description = "Virtual Computation Cube"
+description = "Virtual Computation Cube for Earth Observation Satellite Data"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.10"
 authors = [
     { name = "kshitijrajsharma", email = "skshitizraj@gmail.com" },
     { name = "geomatupen", email = "upendra.oli59@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Image Processing",
 ]
 
 dependencies = [
@@ -29,6 +41,8 @@ api = [
     "fastapi>=0.115.6",
     "aiocache>=0.12.3",
     "jinja2>=3.1.5",
+    "slowapi>=0.1.9",
+    "structlog>=25.1.0",
     "uvicorn>=0.34.0",
 ]
 

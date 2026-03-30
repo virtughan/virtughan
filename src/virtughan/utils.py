@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import zipfile
 from collections.abc import Callable
@@ -10,12 +11,14 @@ import numpy as np
 from scipy.stats import mode as scipy_mode
 from shapely.geometry import box, shape
 
+logger = logging.getLogger(__name__)
+
 
 def zip_files(file_list: list[str], zip_path: str) -> None:
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         for file in file_list:
             zipf.write(file, os.path.basename(file))
-    print(f"Saved intermediate images ZIP to {zip_path}")
+    logger.info("Saved intermediate images ZIP to %s", zip_path)
     for file in file_list:
         os.remove(file)
 
@@ -117,10 +120,12 @@ def smart_filter_images(
     filtered_features = []
     last_selected_date = None
     best_feature = None
-    print(
-        f"""Filter from : {features[-1]["properties"]["datetime"].split("T")[0]} to : {features[0]["properties"]["datetime"].split("T")[0]}"""
+    logger.info(
+        "Filter from %s to %s",
+        features[-1]["properties"]["datetime"].split("T")[0],
+        features[0]["properties"]["datetime"].split("T")[0],
     )
-    print(f"Selecting 1 image per {frequency.days} days")
+    logger.info("Selecting 1 image per %d days", frequency.days)
 
     for feature in sorted(features, key=lambda x: x["properties"]["datetime"]):
         date = datetime.fromisoformat(feature["properties"]["datetime"].split("T")[0])
