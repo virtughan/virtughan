@@ -20,13 +20,13 @@ bibliography: paper.bib
 
 # Summary
 
-**virtughan** is a Python-based geospatial data pipeline designed for on-the-fly computations on raster tiles. By leveraging Cloud-Optimized GeoTIFFs (COGs) and SpatioTemporal Asset Catalog (STAC) endpoints [@stacspec], virtughan enables real-time data processing across multiple zoom levels and time dimensions. virtughan focuses on on-demand tile computation, dynamically computing results as needed while minimizing data transfers and infrastructure overhead for entire scenes [@rio-tiler; @mercantile]. This cost-effective approach ensures that only the necessary tiles (i.e., bounding boxes of interest) are retrieved, with computations applied directly during data access [@sentinel2cogs]. The framework supports user-defined band math, multi-temporal analyses, and partial reads from Cloud-Optimized Sentinel-2 data, along with a caching mechanism to optimize repeated requests [@fastapi]. Ultimately, virtughan provides a scalable, open-source platform for modern geospatial data analytics, offering efficient, and real-time processing. Its optimized tile-based computation allows it to run efficiently even on minimal hardware, making large-scale satellite imagery processing more accessible for researchers, analysts, and developers.
+**virtughan** is a Python-based geospatial data pipeline designed for on-the-fly computations on raster tiles. By leveraging Cloud-Optimized GeoTIFFs (COGs) and SpatioTemporal Asset Catalog (STAC) endpoints [@stacspec, @cogeo], virtughan enables on-demand data processing across multiple zoom levels and time dimensions. virtughan focuses on on-demand tile computation, dynamically computing results as needed while minimizing data transfers and infrastructure overhead for entire scenes [@rio-tiler; @mercantile]. This cost-effective approach ensures that only the necessary tiles (i.e., bounding boxes of interest) are retrieved, with computations applied directly during data access [@sentinel2cogs]. The framework supports user-defined band math, multi-temporal analyses, and partial reads from Cloud-Optimized Sentinel-2 data, along with a caching mechanism to optimize repeated requests [@fastapi]. The architecture is conceptually similar to existing STAC/COG tile services such as TiTiler [@titiler], but virtughan emphasizes the integration of STAC querying, tile-level computation, temporal aggregation, overlap filtering, and AOI export within a lightweight Python workflow. Ultimately, virtughan provides an open-source framework for lightweight EO visualization and analysis. Rather than replacing EO data cubes, virtughan is intended to complement them in workflows where users need dynamic access to derived EO products without downloading complete scenes. This lightweight approach makes the satellite imagery processing more accessible for researchers, analysts, and developers.
 
 # Statement of Need
 
-Big Earth Data, with its high-resolution, multi-temporal satellite imagery, poses growing challenges for storage and real-time processing, often exceeding traditional workflows' capacities [@Sudmanns:2019]. As EO data volumes expand, efficient management strategies are needed to address rising computational and storage demands. Data cubes have emerged as a structured approach to managing large-scale EO datasets, facilitating efficient data access and analysis through precomputed storage architectures [@Giuliani:2019]. However, data cubes often store pre-aggregated or processed data layers, which can lead to increased storage requirements and may not support real-time data updates effectively. This approach can result in inefficiencies, as the storage of multiple processed layers extends the storage burden. Additionally, pre-computation is done on entire images rather than individual tiles, storing pre-aggregated layers for later analysis [@Sudmanns:2019]. This approach improves query efficiency but also increases memory usage and computational load, potentially allocating resources to areas that may not always be relevant. While cloud-based EO platforms like Google Earth Engine offer scalable solutions, they require significant infrastructure, limiting accessibility. Also, Downloading images within a user's area of interest is often time-consuming, as platforms like Copernicus Browser typically require downloading the entire image.
+Big Earth Data, with its high-resolution, multi-temporal satellite imagery, poses growing challenges for storage and real-time processing, often exceeding traditional workflows' capacities [@Sudmanns:2019]. As EO data volumes expand, efficient management strategies are needed to address rising computational and storage demands. Data cubes have emerged as a structured approach to managing large-scale EO datasets, facilitating efficient data access and analysis through precomputed storage architectures [@Giuliani:2019]. However, data cubes often store pre-aggregated or processed data layers, which can lead to increased storage requirements and may not support frequent or dynamic data updates effectively. This approach can result in inefficiencies, as the storage of multiple processed layers extends the storage burden. Additionally, pre-computation is done on entire images rather than individual tiles, storing pre-aggregated layers for later analysis [@Sudmanns:2019]. This approach improves query efficiency but also increases memory usage and computational load, potentially allocating resources to areas that may not always be relevant. While cloud-based EO platforms like Google Earth Engine offer scalable solutions, they require significant infrastructure, limiting accessibility. Also, Downloading images within a user's area of interest is often time-consuming, as platforms like Copernicus Browser typically require downloading the entire image.
 
-virtughan was designed to overcome these challenges by providing a scalable and efficient solution. It optimizes data processing by retrieving and computing only the necessary image tiles on demand, minimizing storage needs and computational overhead. This enables efficient, real-time analysis at multiple zoom levels while eliminating the need for large-scale precomputed datasets. By prioritizing computation over storage, virtughan provides a lightweight, scalable, and cost-effective alternative to traditional EO data cubes and cloud-based processing and data download platforms.
+The architecture of virtughan is conceptually similar to existing STAC/COG tile services such as TiTiler [@titiler], but it emphasizes the integration of STAC querying, temporal aggregation, overlap filtering, and AOI export within a lightweight Python workflow. To address the challenges of storage and precomputation in EO analysis, virtughan retrieves and computes only the image tiles required for a requested area of interest. By performing computations on demand rather than storing precomputed products for complete scenes, it reduces storage needs and computational overhead while enabling efficient processing across multiple zoom levels. Consequently, virtughan provides a lightweight and cost-effective framework that complements traditional EO data cubes and cloud-based processing platforms in workflows requiring dynamic access to derived EO products.
 
 ## Implementation
 
@@ -36,11 +36,11 @@ A user or front-end requests map tiles via `(z, x, y)` coordinates (along with a
 
 ### On-the-Fly Computation
 
-Once partial reads are loaded, virtughan applies user-defined formulas or filters (e.g., NDVI, cloud masking) per pixel. Because all computations occur at tile-creation time, the framework can flexibly incorporate new formulas or data corrections without reprocessing entire scenes.
+Once partial reads are loaded, virtughan applies user-defined formulas or filters (e.g., NDVI, cloud masking) per pixel. Because all computations occur at tile-creation time, the framework can flexibly incorporate new formulas or data corrections without reprocessing entire scenes. For requests spanning multiple acquisition dates, intersecting scenes are filtered and aggregated using the selected reduction method (e.g., median, max, or min). For requests involving bands with different native spatial resolutions, virtughan resamples bands to a common grid before computation. The current implementation does not perform radiometric harmonization between overlapping scenes acquired at different dates.
 
-### Caching and Scaling
+### Tiling and Caching
 
-The processed tiles (e.g., PNG or JPEG) can be cached. If an identical tile request recurs, virtughan serves it directly from the cache; improving performance and lowering bandwidth usage. As zoom levels shift, the system adjusts how the partial reads are resampled, ensuring minimal repeated data access.
+Tile requests are handled using the standard Web Mercator tile matrix (z, x, y). The processed tiles (e.g., PNG or JPEG) can be cached. If an identical tile request recurs, virtughan serves it directly from the cache; improving performance and lowering bandwidth usage. As zoom levels shift, the system adjusts how the partial reads are resampled, ensuring minimal repeated data access. The current implementation uses a local in-memory cache maintained separately for each running process.
 
 ### Download Images within Area of Interest
 
@@ -48,7 +48,7 @@ virtughan allows the users to download the images within their area of interest 
 
 # Performance Comparison
 
-To demonstrate the efficiency of virtughan, we compared its performance against the Sentinel Image Downloader QGIS plugin. The evaluation measured the time required to visualize Sentinel-2 indices (e.g., NDWI) for specific Areas of Interest (AOI).
+To illustrate the practical differences between workflows, we compared virtughan with the Sentinel Image Downloader QGIS plugin for generating Sentinel-2 indices (e.g., NDWI) for selected Areas of Interest (AOI).
 
 | Area of Interest  | Virtughan (s) | Sentinel Downloader (s) |
 | :---------------- | :-----------: | :---------------------: |
@@ -56,9 +56,13 @@ To demonstrate the efficiency of virtughan, we compared its performance against 
 | Kathmandu, Nepal  |      219      |          1744           |
 | Salzburg, Austria |      50       |           559           |
 
-_Table 1: Time comparison for data visualization. Virtughan computes tiles on-the-fly, whereas the traditional approach requires downloading full scenes._
+_Table 1: Workflow time required to obtain a visualizable EO product for each AOI. Virtughan computes tiles on-the-fly, whereas the traditional approach requires downloading full scenes._
 
-The traditional workflow (Sentinel Image Downloader) necessitates downloading full scene bands before calculating indices. For AOIs located in scene overlaps (e.g., Fewa Lake), this requires downloading multiple full scenes. In contrast, virtughan processes only the requested tiles, significantly reducing data transfer and processing time. Note that these measurements exclude authentication (CDSE login) and polygon extraction times.
+This comparison should be interpreted as a workflow-level comparison rather than a direct computational benchmark. The Sentinel Image Downloader workflow includes full-scene transfer, local storage, and processing within QGIS before the requested index can be visualized. In contrast, virtughan retrieves and processes only the data required for the selected area.
+
+For AOIs located in scene overlaps (e.g., Fewa Lake), the Sentinel Image Downloader workflow required downloading multiple overlapping Sentinel-2 scenes, which further increased transfer and processing time. In contrast, virtughan processed only the required image data for the requested area.
+
+The evaluation was performed on a system with an AMD Ryzen 9 5900HX processor (3.30 GHz), 32 GB RAM, Windows 11, and a 15 Mbps internet connection. The reported measurements exclude authentication time (e.g., CDSE login) for the Sentinel Image Downloader workflow and polygon extraction time for both workflows. For virtughan, the values reported in Table 1 correspond to the single-worker runs used during testing. Using four workers reduced the processing time for the Fewa Lake AOI from 84 s to 64 s.
 
 # Figures
 
@@ -68,7 +72,7 @@ The traditional workflow (Sentinel Image Downloader) necessitates downloading fu
 
 # Application Areas
 
-virtughan enables real-time geospatial data processing for various Earth observation applications. It helps monitor environmental changes like deforestation, glacial lake expansion, urban heat islands, and wildfires without requiring extensive data storage. In disaster response, it provides rapid analysis of floods, landslides, cyclones, and earthquakes. Urban planners can analyze land use, infrastructure growth, and air quality. AI integration on virtughan obtained datasets can support automated land classification, object detection, and biodiversity tracking. It also aids security efforts, including border monitoring and conflict damage assessment. As an open-source platform, virtughan enhances accessibility for citizen science, environmental advocacy, and academic research.
+virtughan enables on-the-fly geospatial data processing for various Earth observation applications. It helps monitor environmental changes like deforestation, glacial lake expansion, urban heat islands, and wildfires without requiring extensive data storage. In disaster response, it provides rapid analysis of floods, landslides, cyclones, and earthquakes. Urban planners can analyze land use, infrastructure growth, and air quality. AI integration on virtughan obtained datasets can support automated land classification, object detection, and biodiversity tracking. It also aids security efforts, including border monitoring and conflict damage assessment. As an open-source platform, virtughan enhances accessibility for citizen science, environmental advocacy, and academic research.
 
 ## Future Directions
 
@@ -76,10 +80,10 @@ virtughan already enables users to retrieve and process only the necessary image
 
 - **Mosaicking**: Automating multi-scene merges for larger coverage areas.
 - **Additional Sensors**: Adding Landsat, MODIS, and commercial satellite data.
-- **Plugins and ML Integration**: Allowing advanced user-defined band math or machine-learning inference models for on-the-fly classification.
+- **Plugins and ML Integration**: A QGIS plugin has been developed to support AOI selection, temporal filtering, and custom band calculations. Future work will extend it with additional sensors, machine-learning inference and advanced band math.
 - **Distributed Caching**: Supporting scalable deployments for high-traffic or cluster-based environments.
 
-These future developments will increase virtughan’s flexibility, efficiency, and usability, making large-scale Earth observation data processing more accessible and effective across various domains.
+These future developments will increase virtughan’s flexibility, efficiency, and usability, making Earth observation data processing more accessible across a wider range of applications.
 
 # Acknowledgments
 
