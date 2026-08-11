@@ -87,7 +87,7 @@ print(f"Tile: {x}_{y}_{z}")
 print(f"Date: {feature['properties']['datetime']}")
 print(f"Cloud Cover: {feature['properties']['eo:cloud_cover']}%")
 
-image.save(f'tile_{x}_{y}_{z}.png')
+image.save(f"tile_{x}_{y}_{z}.png")
 ```
 
 
