@@ -44,3 +44,28 @@ jobs:
             --verify-tag \
             --title "v$RELEASE_TAG" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Check PyPI version
+        id: pypi
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if curl --fail --silent --show-error \
+            "https://pypi.org/pypi/virtughan/$RELEASE_TAG/json" > /dev/null; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: astral-sh/setup-uv@v5
+        if: steps.pypi.outputs.published == 'false'
+
+      - name: Build package
+        if: steps.pypi.outputs.published == 'false'
+        run: uv build
+
+      - name: Publish package to PyPI
+        if: steps.pypi.outputs.published == 'false'
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish
