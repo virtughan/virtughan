@@ -1,3 +1,20 @@
+# virtughan 1.1.1
+
+Sentinel-1 compatibility patch.
+
+## Fixes
+
+- Smart filtering now supports collections without a cloud-cover property, so Sentinel-1 works with the Python package defaults.
+- Sentinel-1 tile responses no longer require an `eo:cloud_cover` field.
+- Empty smart-filter inputs now return an empty result instead of raising an indexing error.
+- The FastAPI metadata version now matches the package version.
+
+## Improvements
+
+- Sentinel-1 acquisition-mode filtering is available consistently from `/search`, `/export`, `/tile`, and `/image-download`.
+- Raw-band extraction accepts generic STAC field filters through `extra_query`.
+- Added regression coverage for Sentinel-1 collection metadata, formulas, smart filtering, and API tile responses.
+
 # virtughan 1.1.0
 
 JOSS submission release. Highlights since 1.0.2.

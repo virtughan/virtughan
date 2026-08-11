@@ -95,8 +95,14 @@ def aggregate_time_series(data: list[np.ndarray], operation: str) -> np.ndarray:
 
 
 def smart_filter_images(
-    features: list[dict[str, Any]], start_date: str, end_date: str
+    features: list[dict[str, Any]],
+    start_date: str,
+    end_date: str,
+    ranking_property: str | None = "eo:cloud_cover",
 ) -> list[dict[str, Any]]:
+    if not features:
+        return []
+
     start = datetime.fromisoformat(start_date)
     end = datetime.fromisoformat(end_date)
     total_days = (end - start).days
@@ -134,11 +140,10 @@ def smart_filter_images(
                 filtered_features.append(best_feature)
             best_feature = feature
             last_selected_date = date
-        elif best_feature is not None:
-            if (
-                feature["properties"]["eo:cloud_cover"]
-                < best_feature["properties"]["eo:cloud_cover"]
-            ):
+        elif best_feature is not None and ranking_property:
+            candidate_rank = feature["properties"].get(ranking_property)
+            best_rank = best_feature["properties"].get(ranking_property)
+            if candidate_rank is not None and (best_rank is None or candidate_rank < best_rank):
                 best_feature = feature
 
     # Handle the last period

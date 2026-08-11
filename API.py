@@ -241,9 +241,9 @@ app = FastAPI(
     description=(
         "Virtual Computation Cube for Earth Observation Satellite Data. "
         "Compute band math, generate tiles, extract raw imagery from "
-        "Sentinel-2 and Landsat collections via STAC APIs."
+        "Sentinel-1, Sentinel-2, and Landsat collections via STAC APIs."
     ),
-    version="1.0.1",
+    version="1.1.1",
     lifespan=lifespan,
     openapi_tags=OPENAPI_TAGS,
 )
@@ -402,6 +402,12 @@ async def search_images(
     start_date: str = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(None, description="End date (YYYY-MM-DD)"),
     collection: str = Query("sentinel-2-l2a", description="Satellite collection"),
+    mode: str | None = Query(
+        None,
+        description=(
+            "Sentinel-1 acquisition mode (IW, EW, SM, WV). Only valid for sentinel-1-rtc."
+        ),
+    ),
 ):
     bbox_coords = _parse_bbox(bbox)
     start_date, end_date = _validate_dates(start_date, end_date)
@@ -411,10 +417,19 @@ async def search_images(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    extra_query = _validate_mode(collection, mode)
+
     west, south, east, north = bbox_coords
     bbox_geojson = mapping(box(west, south, east, north))
 
-    response = await search_stac_async(config, bbox_geojson, start_date, end_date, cloud_cover)
+    response = await search_stac_async(
+        config,
+        bbox_geojson,
+        start_date,
+        end_date,
+        cloud_cover,
+        extra_query=extra_query,
+    )
     return JSONResponse(content={"type": "FeatureCollection", "features": response})
 
 
@@ -555,9 +570,11 @@ async def get_tile(
         headers = {
             "X-Computation-Time": str(computation_time),
             "X-Image-Date": feature["properties"]["datetime"],
-            "X-Cloud-Cover": str(feature["properties"]["eo:cloud_cover"]),
             "Cache-Control": "no-store, no-cache, must-revalidate",
         }
+        cloud_cover_value = feature["properties"].get("eo:cloud_cover")
+        if cloud_cover_value is not None:
+            headers["X-Cloud-Cover"] = str(cloud_cover_value)
         return Response(content=image_bytes, media_type="image/png", headers=headers)
 
     except Exception as exc:
@@ -714,11 +731,19 @@ async def extract_raw_bands_as_image(
     ),
     smart_filter: bool = Query(False, alias="smart_filters", description="Apply smart filter"),
     collection: str = Query("sentinel-2-l2a", description="Satellite collection"),
+    mode: str | None = Query(
+        None,
+        description=(
+            "Sentinel-1 acquisition mode (IW, EW, SM, WV). Only valid for sentinel-1-rtc."
+        ),
+    ),
 ):
     try:
         config = get_collection(collection)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    extra_query = _validate_mode(collection, mode)
 
     invalid = config.validate_bands(bands_list.split(","))
     if invalid:
@@ -746,6 +771,7 @@ async def extract_raw_bands_as_image(
         smart_filter,
         collection,
         uid,
+        extra_query,
     )
     return JSONResponse(
         content={
@@ -820,6 +846,7 @@ async def _run_image_download(
     smart_filter: bool,
     collection: str,
     uid: str,
+    extra_query: dict[str, Any] | None = None,
 ) -> None:
     log_file_path = os.path.join(output_dir, "runtime.log")
 
@@ -839,6 +866,7 @@ async def _run_image_download(
                     zip_output=True,
                     smart_filter=smart_filter,
                     collection=collection,
+                    extra_query=extra_query,
                 )
                 processor.extract()
                 console.print(f"Raw band extraction completed. Results saved in {output_dir}")

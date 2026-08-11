@@ -42,6 +42,7 @@ class ExtractProcessor:
         zip_output: bool = False,
         smart_filter: bool = True,
         collection: str = "sentinel-2-l2a",
+        extra_query: dict[str, Any] | None = None,
     ):
         self.bbox = bbox
         self.start_date = start_date
@@ -56,6 +57,7 @@ class ExtractProcessor:
         self.transform: Any = None
         self.use_smart_filter = smart_filter
         self.collection_config = get_collection(collection)
+        self.extra_query = extra_query
 
         self._validate_bands_list()
 
@@ -149,6 +151,7 @@ class ExtractProcessor:
             self.start_date,
             self.end_date,
             self.cloud_cover,
+            extra_query=self.extra_query,
         )
         self.console.print(f"Total scenes found: {len(features)}")
         filtered_features = filter_intersected_features(features, self.bbox)
@@ -159,7 +162,10 @@ class ExtractProcessor:
         self.console.print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
-                overlapping_features_removed, self.start_date, self.end_date
+                overlapping_features_removed,
+                self.start_date,
+                self.end_date,
+                self.collection_config.cloud_cover_property,
             )
             self.console.print(f"Scenes after smart filter: {len(overlapping_features_removed)}")
 

@@ -184,7 +184,9 @@ class TileProcessor:
         collection_config: Any,
     ) -> tuple[Image.Image, dict[str, Any]]:
         results = remove_overlapping_tiles(results, collection_config.tile_id_parser)
-        results = smart_filter_images(results, start_date, end_date)
+        results = smart_filter_images(
+            results, start_date, end_date, collection_config.cloud_cover_property
+        )
 
         tasks: list[Awaitable[np.ndarray]] = []
         valid_features: list[dict[str, Any]] = []

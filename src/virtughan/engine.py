@@ -418,7 +418,10 @@ class VirtughanProcessor:
         self.console.print(f"Scenes after removing overlaps: {len(overlapping_features_removed)}")
         if self.use_smart_filter:
             overlapping_features_removed = smart_filter_images(
-                overlapping_features_removed, self.start_date, self.end_date
+                overlapping_features_removed,
+                self.start_date,
+                self.end_date,
+                self.collection_config.cloud_cover_property,
             )
             self.console.print(f"Scenes after smart filter: {len(overlapping_features_removed)}")
         return overlapping_features_removed

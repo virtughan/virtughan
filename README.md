@@ -121,6 +121,8 @@ processor.compute()
 
 Sentinel-1 is supported via Planetary Computer's RTC (Radiometrically Terrain Corrected) product. Bands are polarizations (`vv`, `vh`, `hh`, `hv`) and pixel values are gamma0 in linear scale. SAR sees through clouds, so `cloud_cover` is ignored for this collection. Filter by acquisition mode (`IW`, `EW`, `SM`, `WV`) via the `extra_query` field.
 
+The regular smart filter can be used with Sentinel-1. It applies the same time cadence as the optical collections but does not attempt to rank radar scenes by cloud cover.
+
 ```python
 processor = VirtughanProcessor(
     bbox=[83.92, 28.19, 83.99, 28.24],  # Phewa Lake, Pokhara
@@ -221,4 +223,3 @@ We are thankful to all those involved and supported us from the program.
 ## Copyright 
 
 © 2024 – Concept by Kshitij and Upen , Distributed under GNU General Public License v3.0 
-

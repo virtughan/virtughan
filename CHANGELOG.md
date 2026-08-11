@@ -1,3 +1,16 @@
+## 1.1.1 (2026-08-11)
+
+### Fix
+
+- support Sentinel-1 smart filtering without cloud-cover metadata
+- omit cloud-cover headers when a collection does not provide them
+- handle empty smart-filter results
+
+### Feat
+
+- add Sentinel-1 acquisition-mode filtering to search and image-download APIs
+- add generic STAC filters to raw-band extraction
+
 ## 1.0.1 (2025-08-22)
 
 ### Fix

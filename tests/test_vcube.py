@@ -15,6 +15,7 @@ from virtughan.extract import ExtractProcessor
 from virtughan.formula import FormulaError, validate_formula
 from virtughan.stac import search_stac
 from virtughan.tile import TileProcessor
+from virtughan.utils import smart_filter_images
 
 NEPAL_BBOX = [83.84765625, 28.22697003891833, 83.935546875, 28.304380682962773]
 
@@ -23,6 +24,9 @@ SENTINEL2_END = "2025-01-01"
 
 LANDSAT_START = "2024-11-01"
 LANDSAT_END = "2025-01-01"
+
+SENTINEL1_START = "2025-01-01"
+SENTINEL1_END = "2025-01-31"
 
 
 # ---- Unit Tests: collections registry ----
@@ -177,6 +181,22 @@ class TestFormulaValidator:
         assert required == {"vv", "vh"}
 
 
+class TestSmartFilter:
+    def test_sentinel1_features_do_not_require_cloud_cover(self):
+        features = [
+            {"id": "s1-1", "properties": {"datetime": "2025-01-01T00:00:00Z"}},
+            {"id": "s1-2", "properties": {"datetime": "2025-01-05T00:00:00Z"}},
+            {"id": "s1-3", "properties": {"datetime": "2025-01-20T00:00:00Z"}},
+        ]
+
+        filtered = smart_filter_images(features, "2025-01-01", "2025-01-31", None)
+
+        assert [feature["id"] for feature in filtered] == ["s1-1", "s1-3"]
+
+    def test_empty_feature_list_is_supported(self):
+        assert smart_filter_images([], "2025-01-01", "2025-01-31", None) == []
+
+
 # ---- Integration Tests: STAC search ----
 
 
@@ -199,6 +219,22 @@ class TestSTACSearch:
         assert "assets" in feature
         assert "red" in feature["assets"]
         assert "nir08" in feature["assets"]
+
+    def test_sentinel1_search_returns_results(self):
+        config = get_collection("sentinel-1-rtc")
+        results = search_stac(
+            config,
+            NEPAL_BBOX,
+            SENTINEL1_START,
+            SENTINEL1_END,
+            max_items=5,
+            extra_query={"sar:instrument_mode": {"eq": "IW"}},
+        )
+        assert len(results) > 0
+        feature = results[0]
+        assert "vv" in feature["assets"]
+        assert "vh" in feature["assets"]
+        assert "eo:cloud_cover" not in feature["properties"]
 
     def test_search_with_high_cloud_filter_returns_fewer(self):
         config = get_collection("sentinel-2-l2a")
@@ -450,3 +486,25 @@ class TestTileSentinel2:
         )
         assert len(image_bytes) > 0
         assert "datetime" in feature["properties"]
+
+
+class TestTileSentinel1:
+    async def test_generate_timeseries_tile_without_cloud_cover(self):
+        tile_processor = TileProcessor()
+        image_bytes, feature = await tile_processor.cached_generate_tile(
+            x=3002,
+            y=1712,
+            z=12,
+            start_date=SENTINEL1_START,
+            end_date=SENTINEL1_END,
+            cloud_cover=30,
+            bands=("vv", "vh"),
+            formula="10 * log10(vv / vh)",
+            latest=False,
+            operation="median",
+            collection="sentinel-1-rtc",
+            mode="IW",
+        )
+        assert len(image_bytes) > 0
+        assert "datetime" in feature["properties"]
+        assert "eo:cloud_cover" not in feature["properties"]

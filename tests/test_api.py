@@ -4,6 +4,7 @@ import time
 
 from fastapi.testclient import TestClient
 
+import API
 from API import app
 
 client = TestClient(app)
@@ -11,6 +12,7 @@ client = TestClient(app)
 NEPAL_BBOX = "83.84765625,28.22697003891833,83.935546875,28.304380682962773"
 SENTINEL2_COLLECTION = "sentinel-2-l2a"
 LANDSAT_COLLECTION = "landsat-c2-l2"
+SENTINEL1_COLLECTION = "sentinel-1-rtc"
 
 
 class TestIndexPages:
@@ -31,6 +33,7 @@ class TestCollectionsEndpoint:
         data = response.json()
         assert SENTINEL2_COLLECTION in data
         assert LANDSAT_COLLECTION in data
+        assert SENTINEL1_COLLECTION in data
         assert "bands" in data[SENTINEL2_COLLECTION]
         assert "bands" in data[LANDSAT_COLLECTION]
 
@@ -45,6 +48,11 @@ class TestCollectionsEndpoint:
         bands = response.json()[LANDSAT_COLLECTION]["bands"]
         for band in ["red", "green", "blue", "nir08"]:
             assert band in bands
+
+    def test_sentinel1_has_expected_bands(self):
+        response = client.get("/collections")
+        bands = response.json()[SENTINEL1_COLLECTION]["bands"]
+        assert set(bands) == {"vv", "vh", "hh", "hv"}
 
 
 class TestBandsEndpoint:
@@ -165,6 +173,27 @@ class TestSearchEndpoint:
 
 
 class TestTileEndpoint:
+    def test_sentinel1_tile_does_not_require_cloud_cover_property(self, monkeypatch):
+        async def fake_generate_tile(*args, **kwargs):
+            return b"png", {"properties": {"datetime": "2025-01-15T12:30:42Z"}}
+
+        monkeypatch.setattr(API.TileProcessor, "cached_generate_tile", fake_generate_tile)
+        response = client.get(
+            "/tile/12/3055/1728",
+            params={
+                "start_date": "2025-01-01",
+                "end_date": "2025-01-20",
+                "bands": "vv,vh",
+                "formula": "10 * log10(vv / vh)",
+                "collection": SENTINEL1_COLLECTION,
+                "mode": "IW",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.headers["X-Image-Date"] == "2025-01-15T12:30:42Z"
+        assert "X-Cloud-Cover" not in response.headers
+
     def test_sentinel2_tile_single_band(self):
         response = client.get(
             "/tile/12/3055/1728",
