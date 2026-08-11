@@ -1,0 +1,46 @@
+name: Create GitHub Release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*.*.*"
+    paths:
+      - .github/workflows/release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read package version
+        id: version
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' pyproject.toml)
+          echo "tag=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release notes
+        run: |
+          awk '
+            /^# virtughan / { section++ }
+            section == 1 { print }
+            section == 2 { exit }
+          ' RELEASE_NOTES.md > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git rev-parse --verify "refs/tags/$RELEASE_TAG"
+          gh release view "$RELEASE_TAG" || gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "v$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
