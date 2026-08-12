@@ -4,10 +4,8 @@ downloading = false;
         //track button click google analytics
         trackExportButtonClick("visualizeAndExportButton");
 
-        const selectedExportSatellite = document.querySelector('input[name="select_satellite_export"]:checked');
-        export_params.collection = selectedExportSatellite && selectedExportSatellite.id === 'landsat_radio_export'
-          ? 'landsat-c2-l2'
-          : 'sentinel-2-l2a';
+        export_params.collection = getSelectedCollection('export');
+        export_params.mode = export_params.collection === 'sentinel-1-rtc' ? getSelectedMode('export') : null;
 
         completed_log = false;
         var analyzeChecked = document.getElementById("analyze-data").checked;
@@ -94,6 +92,10 @@ downloading = false;
         
         var url_compute = `/export?bbox=${export_params.bbox}&start_date=${encodeURIComponent(export_params.startDdate)}&end_date=${encodeURIComponent(export_params.endDate)}&cloud_cover=${export_params.cloudCover}&formula=${encodeURIComponent(export_params.formula)}&bands=${encodeURIComponent(export_params.bands)}&timeseries=${encodeURIComponent(export_params.timeseries)}&smart_filters=${smartFilters}&collection=${encodeURIComponent(export_params.collection)}`;
 
+        if (export_params.mode) {
+          url_compute += `&mode=${encodeURIComponent(export_params.mode)}`;
+        }
+
         if(document.getElementById("operation").checked){
           url_compute += `&operation=${encodeURIComponent(export_params.operation)}`;
         }
@@ -107,6 +109,9 @@ downloading = false;
         // console.log(url_compute);
 
         var download_url = `/image-download?bbox=${export_params.bbox}&start_date=${encodeURIComponent(export_params.startDdate)}&end_date=${encodeURIComponent(export_params.endDate)}&cloud_cover=${export_params.cloudCover}&bands_list=${export_params.bands_list}&smart_filters=${smartFilters}&collection=${encodeURIComponent(export_params.collection)}`;
+        if (export_params.mode) {
+          download_url += `&mode=${encodeURIComponent(export_params.mode)}`;
+        }
         
         
         var url;
@@ -126,6 +131,7 @@ downloading = false;
           endDate: export_params.endDate,
           cloudCover: export_params.cloudCover,
           collection: export_params.collection,
+          mode: export_params.mode,
         };
 
         const searchPromise = fetchSearchResults(searchRequestParams)

@@ -208,7 +208,8 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
           "formula": "visual",
           "timeseries": "false",
           "operation": "median",
-          "collection": "sentinel-2-l2a"
+          "collection": "sentinel-2-l2a",
+          "mode": null
       }
 
       var export_params = {
@@ -222,7 +223,8 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
         "timeseries": "false",
         "bands_list":"",
         "smart_filters":"false",
-        "collection": "sentinel-2-l2a"
+        "collection": "sentinel-2-l2a",
+        "mode": null
       }
 
       // var formula = "(band2-band1)/(band2+band1)";
@@ -412,6 +414,13 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
       window.clearImagesBboxLayer = clearImagesBboxLayer;
 
       function createPopup(feature){
+        const cloudCover = feature.properties["eo:cloud_cover"];
+        const acquisitionMode = feature.properties["sar:instrument_mode"];
+        const collectionSpecificDetails = cloudCover !== undefined
+          ? `<div class="mb-2"><strong class="text-xs text-gray-600">Cloud Cover:</strong> <span class="text-xs text-gray-500">${cloudCover}</span></div>`
+          : acquisitionMode
+            ? `<div class="mb-2"><strong class="text-xs text-gray-600">Acquisition Mode:</strong> <span class="text-xs text-gray-500">${acquisitionMode}</span></div>`
+            : '';
         var popupContent = `
           <div class="popup-content max-h-72 overflow-y-auto custom-scrollbar p-2">
             <div class="mb-2">
@@ -421,10 +430,7 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
               <strong class="text-xs text-gray-600">Date:</strong>
               <span class="text-xs text-gray-500">${feature.properties.datetime}</span>
             </div>
-            <div class="mb-2">
-              <strong class="text-xs text-gray-600">Cloud Cover:</strong>
-              <span class="text-xs text-gray-500">${feature.properties["eo:cloud_cover"]}</span>
-            </div>
+            ${collectionSpecificDetails}
             <hr class="my-2">
             <div class="mb-2">
               <strong class="text-xs">Properties:</strong>
@@ -479,10 +485,8 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
           startLoader('feature-list');
           document.getElementById("search_layer").checked = true;
 
-          const selectedSearchSatellite = document.querySelector('input[name="select_satellite_search"]:checked');
-          tile_params.collection = selectedSearchSatellite && selectedSearchSatellite.id === 'landsat_radio_search'
-            ? 'landsat-c2-l2'
-            : 'sentinel-2-l2a';
+          tile_params.collection = getSelectedCollection('search');
+          tile_params.mode = tile_params.collection === 'sentinel-1-rtc' ? getSelectedMode('search') : null;
 
           const bounds = map.getBounds();
           tile_params.bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
@@ -498,15 +502,16 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
           map.removeLayer(liveLayer);
         }
 
-        const selectedSearchSatellite = document.querySelector('input[name="select_satellite_search"]:checked');
-        tile_params.collection = selectedSearchSatellite && selectedSearchSatellite.id === 'landsat_radio_search'
-          ? 'landsat-c2-l2'
-          : 'sentinel-2-l2a';
+        tile_params.collection = getSelectedCollection('search');
+        tile_params.mode = tile_params.collection === 'sentinel-1-rtc' ? getSelectedMode('search') : null;
 
         var checkedTimeseriesSearch = document.getElementById("timeSeries_search").checked;
         var transparentTile = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2rjWQAAAAASUVORK5CYII=";
 
         var encodedUrl_tiles = `/tile/{z}/{x}/{y}?start_date=${encodeURIComponent(tile_params.startDate)}&end_date=${encodeURIComponent(tile_params.endDate)}&cloud_cover=${encodeURIComponent(tile_params.cloudCover)}&formula=${encodeURIComponent(tile_params.formula)}&bands=${encodeURIComponent(tile_params.bands)}&timeseries=${encodeURIComponent(tile_params.timeseries)}&collection=${encodeURIComponent(tile_params.collection)}&colormap_str=${encodeURIComponent(typeof selectedTilePalette !== 'undefined' ? selectedTilePalette : 'RdYlGn')}`;
+        if (tile_params.mode) {
+          encodedUrl_tiles += `&mode=${encodeURIComponent(tile_params.mode)}`;
+        }
         if(checkedTimeseriesSearch){
           encodedUrl_tiles += `&operation=${encodeURIComponent(tile_params.operation)}`;
         }
@@ -556,6 +561,7 @@ var map = L.map("map").setView([28.202082, 83.957222], 15);
           endDate: tile_params.endDate,
           cloudCover: tile_params.cloudCover,
           collection: tile_params.collection,
+          mode: tile_params.mode,
         })
           .then((features) => {
             if (geojsonLayer) {

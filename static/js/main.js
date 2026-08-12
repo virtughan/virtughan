@@ -97,6 +97,10 @@ const COLLECTION_DEFAULTS = {
     search: { bands: "red", formula: "red" },
     export: { bands: "red,nir08", formula: "(nir08 - red) / (nir08 + red)" },
   },
+  "sentinel-1-rtc": {
+    search: { bands: "vv", formula: "10 * log10(vv)" },
+    export: { bands: "vv,vh", formula: "10 * log10(vv / vh)" },
+  },
 };
 
 const COLLECTION_BANDS_FALLBACK = {
@@ -105,11 +109,13 @@ const COLLECTION_BANDS_FALLBACK = {
     "swir16", "wvp", "nir08", "aot", "coastal", "nir09", "scl", "visual",
   ],
   "landsat-c2-l2": ["red", "green", "blue", "nir08", "swir16", "swir22", "coastal", "lwir11"],
+  "sentinel-1-rtc": ["vv", "vh", "hh", "hv"],
 };
 
 const COLLECTION_LABELS = {
   "sentinel-2-l2a": "Sentinel-2",
   "landsat-c2-l2": "Landsat",
+  "sentinel-1-rtc": "Sentinel-1",
 };
 
 const COLLECTION_STATE = {
@@ -308,10 +314,12 @@ function applyCollectionDefaults(scope, collection) {
   const defaults = COLLECTION_DEFAULTS[collection] || COLLECTION_DEFAULTS['sentinel-2-l2a'];
   if (scope === 'search') {
     tile_params.collection = collection;
+    tile_params.mode = collection === 'sentinel-1-rtc' ? getSelectedMode(scope) : null;
     tile_params.bands = defaults.search.bands;
     tile_params.formula = defaults.search.formula;
   } else {
     export_params.collection = collection;
+    export_params.mode = collection === 'sentinel-1-rtc' ? getSelectedMode(scope) : null;
     export_params.bands = defaults.export.bands;
     export_params.formula = defaults.export.formula;
     export_params.bands_list = '';
@@ -330,10 +338,73 @@ function applyCollectionDefaults(scope, collection) {
   // Always update the formula band selectors with the current collection's bands
   populateBandSelectors(collection);
   renderBandCheckboxes(collection);
+  updateCollectionSpecificUI(scope, collection);
 
   if (scope === 'export' && typeof updateBandsBox === 'function') {
     updateBandsBox();
   }
+}
+
+function getSelectedCollection(scope) {
+  const select = document.getElementById(`satellite-collection-${scope}`);
+  return select?.value || COLLECTION_STATE[scope] || 'sentinel-2-l2a';
+}
+
+function getSelectedMode(scope) {
+  const select = document.getElementById(`sentinel1-mode-${scope}`);
+  return select?.value || 'IW';
+}
+
+function updateCollectionSpecificUI(scope, collection) {
+  const isSentinel1 = collection === 'sentinel-1-rtc';
+  document.getElementById(`sentinel1-mode-container-${scope}`)?.classList.toggle('hidden', !isSentinel1);
+  document.getElementById(`cloud-cover-container-${scope}`)?.classList.toggle('hidden', isSentinel1);
+
+  const listSelector = scope === 'search' ? '#select-list_search' : '#select-list_export';
+  document.querySelectorAll(`${listSelector} .template-filters`).forEach((item) => {
+    const isRadarTemplate = item.classList.contains('radar-template');
+    const templateValue = item.querySelector('.template-filters-value')?.getAttribute('value');
+    const isUnsupportedVisual = collection === 'landsat-c2-l2' && templateValue === 'visual';
+    const shouldHide = isSentinel1 ? !isRadarTemplate : isRadarTemplate || isUnsupportedVisual;
+    item.classList.toggle('hidden', shouldHide);
+  });
+
+  const operationSelect = document.getElementById(
+    scope === 'search' ? 'operation_menu_search' : 'operation_menu',
+  );
+  operationSelect?.querySelectorAll('.optical-operation').forEach((option) => {
+    option.hidden = isSentinel1;
+    option.disabled = isSentinel1;
+  });
+  if (isSentinel1 && !['median', 'mean'].includes(operationSelect?.value)) {
+    operationSelect.value = 'median';
+    if (scope === 'search') {
+      tile_params.operation = 'median';
+    } else {
+      export_params.operation = 'median';
+    }
+  }
+}
+
+function resetCollectionFilterSelection(scope) {
+  const selectButton = document.getElementById(`select-button_${scope}`);
+  const selectedLabel = selectButton?.querySelector('.truncate');
+  if (selectedLabel) {
+    selectedLabel.textContent = 'Select Option';
+  }
+
+  const listSelector = scope === 'search' ? '#select-list_search' : '#select-list_export';
+  document.querySelectorAll(`${listSelector} .template-filters`).forEach((item) => {
+    item.classList.remove('bg-indigo-600', 'text-white', 'font-semibold');
+    item.querySelector('span')?.classList.remove('text-white');
+    item.querySelector('svg')?.classList.add('hidden');
+  });
+
+  const actionButton = document.getElementById(
+    scope === 'search' ? 'search-button' : 'export-map-view-button',
+  );
+  actionButton?.classList.add('bg-gray-500', 'pointer-events-none');
+  actionButton?.classList.remove('bg-blue-700');
 }
 
 async function loadCollectionMetadata() {
@@ -345,26 +416,16 @@ async function loadCollectionMetadata() {
   }
 }
 
-function setCollectionByRadio(radio) {
-  const isSearch = radio.id.includes('_search');
-  const scope = isSearch ? 'search' : 'export';
-  const collection = radio.id.startsWith('landsat') ? 'landsat-c2-l2' : 'sentinel-2-l2a';
+function setCollectionBySelect(select) {
+  const scope = select.dataset.scope;
+  const collection = select.value;
+  const collectionChanged = COLLECTION_STATE[scope] !== collection;
   COLLECTION_STATE[scope] = collection;
 
   applyCollectionDefaults(scope, collection);
-
-  const listSelector = isSearch ? '#select-list_search' : '#select-list_export';
-  const visualItems = document.querySelectorAll(`${listSelector} .template-filters`);
-  visualItems.forEach((item) => {
-    const valueNode = item.querySelector('.template-filters-value');
-    if (valueNode && valueNode.getAttribute('value') === 'visual') {
-      if (collection === 'landsat-c2-l2') {
-        item.classList.add('hidden');
-      } else {
-        item.classList.remove('hidden');
-      }
-    }
-  });
+  if (collectionChanged) {
+    resetCollectionFilterSelection(scope);
+  }
 }
 
 //band box change - advance filter (formula) start
@@ -424,20 +485,23 @@ document.addEventListener('click', function(event) {
 document.addEventListener('DOMContentLoaded', async function () {
   await loadCollectionMetadata();
 
-  document.querySelectorAll('.radio-action-sat').forEach((radio) => {
-    radio.addEventListener('change', function () {
-      setCollectionByRadio(this);
+  document.querySelectorAll('.satellite-collection-select').forEach((select) => {
+    select.addEventListener('change', function () {
+      setCollectionBySelect(this);
     });
+    setCollectionBySelect(select);
   });
 
-  const defaultSearchRadio = document.getElementById('sentinel2_radio_search');
-  const defaultExportRadio = document.getElementById('sentinel2_radio_export');
-  if (defaultSearchRadio) {
-    setCollectionByRadio(defaultSearchRadio);
-  }
-  if (defaultExportRadio) {
-    setCollectionByRadio(defaultExportRadio);
-  }
+  document.querySelectorAll('.sentinel1-mode-select').forEach((select) => {
+    select.addEventListener('change', function () {
+      const scope = this.dataset.scope;
+      if (scope === 'search') {
+        tile_params.mode = this.value;
+      } else {
+        export_params.mode = this.value;
+      }
+    });
+  });
 });
 
 
@@ -628,6 +692,14 @@ document.addEventListener('DOMContentLoaded', function() {
           param.formula = visBand;
           param.bands = visBand;
         }
+        else if(templateText == "S1_VV_DB"){
+          param.formula = '10 * log10(vv)';
+          param.bands = 'vv';
+        }
+        else if(templateText == "S1_VV_VH_DB"){
+          param.formula = '10 * log10(vv / vh)';
+          param.bands = 'vv,vh';
+        }
 
         // Update formula band UI if export was changed
         if (param === export_params && typeof updateFormulaBandsUI === 'function') {
@@ -681,4 +753,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
   
       
-
