@@ -163,7 +163,10 @@ function renderSceneList(items) {
     .map((feature, index) => {
       const datetime = feature?.properties?.datetime || "Unknown date";
       const cloudCover = feature?.properties?.["eo:cloud_cover"];
-      const cloudCoverLabel = cloudCover === undefined ? "N/A" : `${parseInt(cloudCover, 10)} %`;
+      const acquisitionMode = feature?.properties?.["sar:instrument_mode"];
+      const sceneMetadata = cloudCover === undefined
+        ? `<i class="fa-solid fa-satellite-dish"></i> ${escapeHtml(acquisitionMode || "SAR")}`
+        : `<i class="fa-solid fa-cloud"></i> ${escapeHtml(`${parseInt(cloudCover, 10)} %`)}`;
       return `
         <ul role="list" class="divide-y divide-gray-100">
           <li id="result_list_${index}" data-result-index="${index}" class="result-list-items flex justify-between gap-x-6 py-5 hover:bg-gray-100 transition-colors duration-300 cursor-pointer">
@@ -175,7 +178,7 @@ function renderSceneList(items) {
               </div>
             </div>
             <div class="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
-              <p class="mt-auto text-xs/5 text-gray-400"><i class="fa-solid fa-cloud"></i> ${escapeHtml(cloudCoverLabel)}</p>
+              <p class="mt-auto text-xs/5 text-gray-400">${sceneMetadata}</p>
             </div>
           </li>
         </ul>
@@ -475,7 +478,8 @@ function buildSearchRequestUrl(params) {
   const endDate = encodeURIComponent(params.endDate || "");
   const cloudCover = encodeURIComponent(params.cloudCover ?? "30");
   const collection = encodeURIComponent(params.collection || "sentinel-2-l2a");
-  return `/search?bbox=${bbox}&start_date=${startDate}&end_date=${endDate}&cloud_cover=${cloudCover}&collection=${collection}`;
+  const mode = params.mode ? `&mode=${encodeURIComponent(params.mode)}` : "";
+  return `/search?bbox=${bbox}&start_date=${startDate}&end_date=${endDate}&cloud_cover=${cloudCover}&collection=${collection}${mode}`;
 }
 
 function fetchSearchResults(params) {

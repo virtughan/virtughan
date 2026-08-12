@@ -455,16 +455,20 @@
               <!-- <h2 class="text-base/7 font-semibold text-gray-900">Apply Filters</h2>
               <p class="mt-1 text-sm/6 text-gray-600">Select the filters you want to apply.</p> -->
               <div class="pb-4">
-                <label id="select_satellite_search" class="block text-sm/6 font-medium text-gray-800">Select Satellite <i title="Select the satellite" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
-                <div class="flex items-center space-x-4 mt-2">
-                  <div class="flex items-center p-2">
-                    <input type="radio" id="sentinel2_radio_search" name="select_satellite_search" value="sentinel2_r" class="radio-action-sat form-radio h-4 w-4 text-blue-600" checked>
-                    <label for="sentinel2_radio_search" class="ml-2 text-sm text-gray-700">Sentinel-2</label>
-                  </div>
-                  <div class="flex items-center">
-                    <input type="radio" id="landsat_radio_search" name="select_satellite_search" value="landsat_r" class="radio-action-sat form-radio h-4 w-4 text-blue-600">
-                    <label for="landsat_radio_search" class="ml-2 text-sm text-gray-700">Landsat</label>
-                  </div>
+                <label for="satellite-collection-search" class="block text-sm/6 font-medium text-gray-800">Select Satellite <i title="Select the satellite" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
+                <select id="satellite-collection-search" data-scope="search" class="satellite-collection-select mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500">
+                  <option value="sentinel-2-l2a">Sentinel-2</option>
+                  <option value="landsat-c2-l2">Landsat</option>
+                  <option value="sentinel-1-rtc">Sentinel-1</option>
+                </select>
+                <div id="sentinel1-mode-container-search" class="mt-3 hidden">
+                  <label for="sentinel1-mode-search" class="block text-sm/6 font-medium text-gray-800">Acquisition Mode <i title="Sentinel-1 acquisition mode. IW is recommended for most land applications." class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
+                  <select id="sentinel1-mode-search" data-scope="search" class="sentinel1-mode-select mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500">
+                    <option value="IW">IW — Interferometric Wide Swath</option>
+                    <option value="EW">EW — Extra-Wide Swath</option>
+                    <option value="SM">SM — Stripmap</option>
+                    <option value="WV">WV — Wave</option>
+                  </select>
                 </div>
               </div>
               <div id = "filterOption_search" class = "pb-4">
@@ -546,6 +550,20 @@
                       </div>
                       <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
                     </li>
+                    <li class="template-filters radar-template hidden relative select-none py-2 pl-3 pr-9 text-gray-900 cursor-pointer hover:bg-gray-100" role="option">
+                      <div class="flex items-center">
+                        <i class="fa-solid fa-satellite-dish size-5 text-center text-gray-500"></i>
+                        <span class="template-filters-value ml-3 block truncate font-normal" value="S1_VV_DB" title="Sentinel-1 VV backscatter in decibels">VV Backscatter (dB)</span>
+                      </div>
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
+                    </li>
+                    <li class="template-filters radar-template hidden relative select-none py-2 pl-3 pr-9 text-gray-900 cursor-pointer hover:bg-gray-100" role="option">
+                      <div class="flex items-center">
+                        <i class="fa-solid fa-wave-square size-5 text-center text-gray-500"></i>
+                        <span class="template-filters-value ml-3 block truncate font-normal" value="S1_VV_VH_DB" title="Sentinel-1 VV/VH cross-polarization ratio in decibels">VV/VH Ratio (dB)</span>
+                      </div>
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
+                    </li>
                   </ul>
                 </div>
                 <label id = "formulaHeading" class="block text-xs font-medium text-gray-600 pb-1 pt-1 hidden">Custom: <span id="formulaText" class = "break-words w-64 text-xs text-gray-500" ></span></label>
@@ -565,7 +583,7 @@
                   </label>
                 </div>
               </div>
-              <div class="pb-4">
+              <div id="cloud-cover-container-search" class="pb-4">
                 <label class="block text-sm/6 font-medium text-gray-900 pb-1" >Select Cloud Cover <i title = "Less than the input value in percentage" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
                 
                 <div class="bg-white mt-4">
@@ -588,12 +606,12 @@
                     <!-- <option value="min" class="text-gray-600">Select Option</option> -->
                     <option value="median" class="text-gray-600">Median</option>
                     <option value="mean" class="text-gray-600">Mean</option>
-                    <option value="min" class="text-gray-600">Min</option>
-                    <option value="max" class="text-gray-600">Max</option>
-                    <option value="std" class="text-gray-600">Std</option>
-                    <option value="sum" class="text-gray-600">Sum</option>
-                    <option value="var" class="text-gray-600">Variance</option>
-                    <option value="mode" class="text-gray-600">Mode</option>
+                    <option value="min" class="text-gray-600 optical-operation">Min</option>
+                    <option value="max" class="text-gray-600 optical-operation">Max</option>
+                    <option value="std" class="text-gray-600 optical-operation">Std</option>
+                    <option value="sum" class="text-gray-600 optical-operation">Sum</option>
+                    <option value="var" class="text-gray-600 optical-operation">Variance</option>
+                    <option value="mode" class="text-gray-600 optical-operation">Mode</option>
                 </select>
             </div>
 
@@ -885,16 +903,20 @@
                 
 
                 <div class="pb-4">
-                  <label id="select_satellite_export" class="block text-sm/6 font-medium text-gray-800">Select Satellite <i title="Select the satellite" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
-                  <div class="flex items-center space-x-4 mt-2 mb-4">
-                    <div class="flex items-center p-2">
-                      <input type="radio" id="sentinel2_radio_export" name="select_satellite_export" value="sentinel2_r" class="radio-action-sat form-radio h-4 w-4 text-blue-600" checked>
-                      <label for="sentinel2_radio_export" class="ml-2 text-sm text-gray-700">Sentinel-2</label>
-                    </div>
-                    <div class="flex items-center">
-                      <input type="radio" id="landsat_radio_export" name="select_satellite_export" value="landsat_r" class="radio-action-sat form-radio h-4 w-4 text-blue-600">
-                      <label for="landsat_radio_export" class="ml-2 text-sm text-gray-700">Landsat</label>
-                    </div>
+                  <label for="satellite-collection-export" class="block text-sm/6 font-medium text-gray-800">Select Satellite <i title="Select the satellite" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
+                  <select id="satellite-collection-export" data-scope="export" class="satellite-collection-select mt-2 mb-4 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500">
+                    <option value="sentinel-2-l2a">Sentinel-2</option>
+                    <option value="landsat-c2-l2">Landsat</option>
+                    <option value="sentinel-1-rtc">Sentinel-1</option>
+                  </select>
+                  <div id="sentinel1-mode-container-export" class="mb-4 hidden">
+                    <label for="sentinel1-mode-export" class="block text-sm/6 font-medium text-gray-800">Acquisition Mode <i title="Sentinel-1 acquisition mode. IW is recommended for most land applications." class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
+                    <select id="sentinel1-mode-export" data-scope="export" class="sentinel1-mode-select mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500">
+                      <option value="IW">IW — Interferometric Wide Swath</option>
+                      <option value="EW">EW — Extra-Wide Swath</option>
+                      <option value="SM">SM — Stripmap</option>
+                      <option value="WV">WV — Wave</option>
+                    </select>
                   </div>
                 </div>
                 <div id = "export-filter-option" class = "pb-4">
@@ -977,6 +999,20 @@
                           </div>
                           <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
                         </li>
+                        <li class="template-filters radar-template hidden relative select-none py-2 pl-3 pr-9 text-gray-900 cursor-pointer hover:bg-gray-100" role="option">
+                          <div class="flex items-center">
+                            <i class="fa-solid fa-satellite-dish size-5 text-center text-gray-500"></i>
+                            <span class="template-filters-value ml-3 block truncate font-normal" value="S1_VV_DB" title="Sentinel-1 VV backscatter in decibels">VV Backscatter (dB)</span>
+                          </div>
+                          <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
+                        </li>
+                        <li class="template-filters radar-template hidden relative select-none py-2 pl-3 pr-9 text-gray-900 cursor-pointer hover:bg-gray-100" role="option">
+                          <div class="flex items-center">
+                            <i class="fa-solid fa-wave-square size-5 text-center text-gray-500"></i>
+                            <span class="template-filters-value ml-3 block truncate font-normal" value="S1_VV_VH_DB" title="Sentinel-1 VV/VH cross-polarization ratio in decibels">VV/VH Ratio (dB)</span>
+                          </div>
+                          <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600"><svg class="size-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"></svg></span>
+                        </li>
                       </ul>
                     </div>
                     
@@ -1053,7 +1089,7 @@
                                   </label>
                               </div>
                           </li>
-                          <li class="p-2 border-b border-gray-200">
+                          <li id="cloud-cover-container-export" class="p-2 border-b border-gray-200">
                               <label class="block text-sm/6 font-medium text-gray-700 pb-1">Select Cloud Cover <i title = "Less than the input value in percentage" class="info-icons fa-regular fa-circle-question text-gray-500 text-xs"></i></label>
                               <div class="bg-white mt-4">
                                   <div class="relative bg-inherit">
@@ -1086,12 +1122,12 @@
                         <!-- <option value="min" class="text-gray-600">Select Option</option> -->
                         <option value="median" class="text-gray-600">Median</option>
                         <option value="mean" class="text-gray-600">Mean</option>
-                        <option value="min" class="text-gray-600">Min</option>
-                        <option value="max" class="text-gray-600">Max</option>
-                        <option value="std" class="text-gray-600">Std</option>
-                        <option value="sum" class="text-gray-600">Sum</option>
-                        <option value="var" class="text-gray-600">Variance</option>
-                        <option value="mode" class="text-gray-600">Mode</option>
+                        <option value="min" class="text-gray-600 optical-operation">Min</option>
+                        <option value="max" class="text-gray-600 optical-operation">Max</option>
+                        <option value="std" class="text-gray-600 optical-operation">Std</option>
+                        <option value="sum" class="text-gray-600 optical-operation">Sum</option>
+                        <option value="var" class="text-gray-600 optical-operation">Variance</option>
+                        <option value="mode" class="text-gray-600 optical-operation">Mode</option>
                     </select>
                 </div>
               </div>
